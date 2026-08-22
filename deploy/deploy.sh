@@ -33,7 +33,9 @@ log "Revisão ${REVISION}"
 # serviria para nada.
 if $COMPOSE ps --status running --services 2>/dev/null | grep -q '^postgres$'; then
     log "Backup do banco antes de migrar"
-    ./deploy/backup.sh
+    # Invocado por `bash`, e não diretamente: assim o passo mais importante do
+    # deploy não depende do bit de execução ter sobrevivido ao checkout.
+    bash ./deploy/backup.sh
 fi
 
 # --- Build -----------------------------------------------------------------
