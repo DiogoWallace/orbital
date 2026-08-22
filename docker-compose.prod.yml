@@ -1,0 +1,124 @@
+name: orbital
+
+# Produção. Diferenças deliberadas em relação ao docker-compose.yml de
+# desenvolvimento:
+#
+#   - o código é assado nas imagens, sem bind mount;
+#   - nenhuma porta além da 80/443 do Caddy é publicada — postgres e redis só
+#     existem dentro da rede do Compose;
+#   - tudo reinicia sozinho e tem healthcheck;
+#   - segredos vêm de .env.production, que nunca entra no Git.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?defina SITE_DOMAIN no .env.production}
+      ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL no .env.production}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Os certificados vivem em volume: sem isso, cada deploy pediria emissão
+      # nova e esbarraria no limite semanal do Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    depends_on:
+      - web
+      - nginx
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      # Chamadas server-side do BFF continuam internas à rede do Compose.
+      API_INTERNAL_URL: http://nginx
+      NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN}
+    depends_on:
+      - nginx
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - api_storage:/var/www/html/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - api_storage:/var/www/html/storage
+    # `--max-time` faz o worker morrer de tempos em tempos e ser recriado pelo
+    # Docker: é a forma barata de não deixar vazamento de memória acumular num
+    # processo de vida longa.
+    command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600", "--sleep=3"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?}
+      POSTGRES_USER: ${DB_USERNAME:?}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=pt-BR --encoding=UTF8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/10-extensions.sql:ro
+      - ./storage/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
+  api_storage:

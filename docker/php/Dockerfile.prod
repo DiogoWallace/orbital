@@ -1,0 +1,73 @@
+# syntax=docker/dockerfile:1
+#
+# Imagem de produção da API.
+#
+# O código é assado na imagem, não montado por bind mount como no
+# desenvolvimento: em produção o container precisa ser reproduzível e
+# imutável — o que subiu é exatamente o que foi testado.
+
+# --- Estágio 1: dependências ------------------------------------------------
+FROM composer:2 AS vendor
+
+WORKDIR /app
+
+# Só os manifestos primeiro: enquanto composer.json/lock não mudarem, esta
+# camada vem do cache e o build salta a resolução inteira de dependências.
+COPY apps/api/composer.json apps/api/composer.lock ./
+
+RUN composer install \
+        --no-dev \
+        --no-scripts \
+        --no-autoloader \
+        --prefer-dist \
+        --no-interaction
+
+COPY apps/api/ ./
+
+RUN composer dump-autoload --optimize --classmap-authoritative --no-dev
+
+# --- Estágio 2: runtime -----------------------------------------------------
+FROM php:8.4-fpm-alpine AS runtime
+
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+
+RUN install-php-extensions \
+        pdo_pgsql \
+        pgsql \
+        redis \
+        zip \
+        intl \
+        bcmath \
+        gd \
+        exif \
+        pcntl \
+        opcache \
+    && apk add --no-cache bash postgresql-client curl \
+    && rm -f /usr/local/bin/install-php-extensions
+
+COPY docker/php/php.prod.ini /usr/local/etc/php/conf.d/99-orbital.ini
+
+WORKDIR /var/www/html
+
+COPY --from=vendor --chown=www-data:www-data /app /var/www/html
+
+# O entrypoint entra na imagem, e não como `config` do Compose: o Compose
+# ignora o modo de permissão em configs, e o arquivo chegaria sem bit de
+# execução.
+COPY --chmod=0555 docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+
+# storage e bootstrap/cache precisam ser graváveis; o resto, não.
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R u+w storage bootstrap/cache
+
+# Healthcheck bate no próprio php-fpm, não na aplicação: distingue "o PHP
+# morreu" de "a aplicação retornou erro", que exigem respostas diferentes.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD php -r 'exit(0);' || exit 1
+
+USER www-data
+
+EXPOSE 9000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]

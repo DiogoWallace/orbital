@@ -1,0 +1,79 @@
+/*
+ * Tokens de design do Orbital.
+ *
+ * A metáfora é instrumento de laboratório: fundo profundo e neutro, tinta de
+ * dado com alto contraste, um acento por disciplina e nada de brilho decorativo.
+ * A interface é o instrumento; o dado é o protagonista.
+ *
+ * Tema escuro é o padrão porque a maior parte da tela é visualização — gráfico,
+ * canvas, diagrama — e fundo claro rouba contraste de linhas finas.
+ */
+
+@theme {
+  /* --- Superfícies ------------------------------------------------------ */
+  --color-void: oklch(0.16 0.015 255);        /* fundo da página */
+  --color-surface: oklch(0.21 0.018 255);     /* cartões e painéis */
+  --color-surface-raised: oklch(0.26 0.02 255);
+  --color-line: oklch(0.34 0.02 255);         /* bordas e malha */
+  --color-line-strong: oklch(0.45 0.025 255);
+
+  /* --- Tinta ------------------------------------------------------------ */
+  --color-ink: oklch(0.96 0.005 255);         /* texto principal */
+  --color-ink-muted: oklch(0.75 0.015 255);   /* texto secundário */
+  --color-ink-faint: oklch(0.58 0.015 255);   /* rótulos, metadados */
+
+  /* --- Acentos por disciplina ------------------------------------------ */
+  /* Escolhidos em oklch com luminância próxima: trocar o acento não muda o
+     peso visual do componente, e todos passam em contraste sobre --void. */
+  --color-accent-cyan: oklch(0.78 0.13 210);
+  --color-accent-violet: oklch(0.72 0.15 295);
+  --color-accent-amber: oklch(0.80 0.14 75);
+  --color-accent-emerald: oklch(0.78 0.13 160);
+  --color-accent-rose: oklch(0.75 0.14 15);
+
+  /* --- Sinais ----------------------------------------------------------- */
+  --color-signal-ok: oklch(0.78 0.13 160);
+  --color-signal-warn: oklch(0.80 0.14 75);
+  --color-signal-danger: oklch(0.68 0.18 25);
+
+  /* --- Tipografia ------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Números tabulares e largura fixa: leitura de instrumento não pode dançar
+     enquanto o valor muda a 60 fps. */
+  --font-mono: var(--font-mono-stack), ui-monospace, "SF Mono", monospace;
+
+  /* --- Ritmo ------------------------------------------------------------ */
+  --radius-panel: 0.75rem;
+  --radius-control: 0.5rem;
+
+  /* Transições curtas e físicas. Nada acima de 240ms: acima disso a interface
+     parece lenta, não elegante. */
+  --ease-out-instrument: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Acento ativo da página. As páginas de disciplina sobrescrevem esta
+     variável, e todo componente que usa `--accent` se recolore junto. */
+  --accent: var(--color-accent-cyan);
+}
+
+/* Malha milimetrada de fundo: referência espacial discreta, como papel de
+   laboratório. Some por completo em `prefers-reduced-transparency`. */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--color-line) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--color-line) 40%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

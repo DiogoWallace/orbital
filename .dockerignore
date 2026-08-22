@@ -1,0 +1,24 @@
+# Fora do contexto de build: acelera o envio e, mais importante, impede que
+# segredos ou artefatos de desenvolvimento entrem numa camada da imagem.
+.git
+.gitignore
+.tmp
+.env
+.env.*
+!.env.example
+
+docs
+Makefile
+README.md
+
+**/node_modules
+**/.next
+**/vendor
+**/storage/logs/*
+**/storage/framework/cache/*
+**/storage/framework/sessions/*
+**/storage/framework/views/*
+**/tests
+**/.vscode
+**/.idea
+**/*.log

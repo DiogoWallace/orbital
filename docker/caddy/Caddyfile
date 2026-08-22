@@ -1,0 +1,46 @@
+{
+	# Let's Encrypt precisa de um endereço para avisos de expiração.
+	email {$ACME_EMAIL}
+
+	# Descomente para testar sem gastar a cota de emissão do Let's Encrypt
+	# (o certificado será inválido no navegador, mas o fluxo é idêntico):
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		# Um ano, subdomínios inclusos. Só ative `preload` na lista da HSTS
+		# quando tiver certeza — sair de lá leva meses.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# A API é pública por decisão de arquitetura (ADR 0002): ela serve o BFF
+	# hoje e qualquer outro cliente amanhã. O navegador da aplicação não passa
+	# por aqui — ele fala com os route handlers do Next.
+	handle /api/* {
+		reverse_proxy nginx:80
+	}
+
+	# Healthcheck do Laravel, útil para monitoramento externo.
+	handle /up {
+		reverse_proxy nginx:80
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+		format json
+	}
+}

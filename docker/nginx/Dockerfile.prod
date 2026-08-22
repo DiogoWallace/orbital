@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+#
+# nginx de produção, com os arquivos públicos da API embutidos.
+#
+# A alternativa — um volume compartilhado entre api e nginx — foi descartada:
+# o volume nomeado nasce pertencendo a root, a API roda como www-data, e a
+# cópia falhava deixando o container em loop de restart. Além do mais, esta
+# Laravel serve apenas API: `public/` é código-fonte estático, sem etapa de
+# build. Copiar na imagem é mais simples e não tem ordem de inicialização.
+
+FROM nginx:1.27-alpine
+
+COPY docker/nginx/prod.conf /etc/nginx/conf.d/default.conf
+COPY apps/api/public /srv/public
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q --spider http://127.0.0.1/up || exit 1

@@ -1,0 +1,9 @@
+/.env
+/.env.production
+/.tmp/
+/storage/backups/
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+*.log
