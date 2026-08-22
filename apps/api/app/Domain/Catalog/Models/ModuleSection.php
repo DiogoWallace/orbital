@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Catalog\Models;
 
 use App\Domain\Catalog\Enums\SectionKind;
+use Database\Factories\ModuleSectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ModuleSection extends Model
 {
-    /** @use HasFactory<\Database\Factories\ModuleSectionFactory> */
+    /** @use HasFactory<ModuleSectionFactory> */
     use HasFactory;
 
     protected $fillable = [

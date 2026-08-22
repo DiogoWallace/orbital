@@ -10,6 +10,7 @@ use App\Domain\Catalog\Enums\ModuleStatus;
 use App\Domain\Identity\Models\User;
 use App\Domain\Projects\Models\Project;
 use App\Domain\Simulation\Models\SimulationRun;
+use Database\Factories\ModuleFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Module extends Model
 {
-    /** @use HasFactory<\Database\Factories\ModuleFactory> */
+    /** @use HasFactory<ModuleFactory> */
     use HasFactory;
 
     use SoftDeletes;

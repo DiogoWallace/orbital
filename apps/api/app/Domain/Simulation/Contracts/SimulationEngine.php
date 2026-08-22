@@ -6,6 +6,7 @@ namespace App\Domain\Simulation\Contracts;
 
 use App\Domain\Simulation\Data\SimulationRequestData;
 use App\Domain\Simulation\Data\SimulationResultData;
+use App\Domain\Simulation\SimulationEngineRegistry;
 
 /**
  * Ponto de extensão para simulação executada no servidor.
@@ -16,7 +17,7 @@ use App\Domain\Simulation\Data\SimulationResultData;
  * execução que precisa ser auditável.
  *
  * Implementações vivem em `app/Modules/<Nome>/` e se registram no
- * {@see \App\Domain\Simulation\SimulationEngineRegistry} pela `component_key`
+ * {@see SimulationEngineRegistry} pela `component_key`
  * do módulo, de modo que o núcleo nunca precise conhecê-las.
  */
 interface SimulationEngine

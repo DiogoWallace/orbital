@@ -6,6 +6,7 @@ namespace App\Domain\Simulation\Models;
 
 use App\Domain\Catalog\Models\Module;
 use App\Domain\Identity\Models\User;
+use Database\Factories\SimulationRunFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SimulationRun extends Model
 {
-    /** @use HasFactory<\Database\Factories\SimulationRunFactory> */
+    /** @use HasFactory<SimulationRunFactory> */
     use HasFactory;
 
     use HasUuids;
