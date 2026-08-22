@@ -32,6 +32,10 @@ services:
       - nginx
 
   web:
+    # O nome da imagem é fixo para que o mesmo compose sirva aos dois modos:
+    # `docker compose build` constrói localmente com esta tag, e
+    # `docker compose pull` busca a mesma tag do registry quando o CI publicar.
+    image: ${REGISTRY:-ghcr.io/diogowallace}/orbital-web:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -45,6 +49,7 @@ services:
       - nginx
 
   nginx:
+    image: ${REGISTRY:-ghcr.io/diogowallace}/orbital-nginx:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile.prod
@@ -54,6 +59,7 @@ services:
         condition: service_started
 
   api:
+    image: ${REGISTRY:-ghcr.io/diogowallace}/orbital-api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/php/Dockerfile.prod
@@ -68,9 +74,8 @@ services:
         condition: service_healthy
 
   queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile.prod
+    # Mesma imagem da API, outro processo — não há motivo para construir duas.
+    image: ${REGISTRY:-ghcr.io/diogowallace}/orbital-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env.production
     volumes:

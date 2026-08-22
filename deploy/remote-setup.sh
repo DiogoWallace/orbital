@@ -29,14 +29,23 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 "root@${HOST}" true 2>/dev/null \
     || fail "Sem acesso por chave. Rode antes: ssh-copy-id root@${HOST}"
 
 log "Verificando o DNS de ${DOMAIN}"
-RESOLVED="$(getent hosts "${DOMAIN}" | awk '{print $1}' | head -1 || true)"
+# A consulta é feita a partir da própria VPS, e não da máquina local: o
+# resolvedor de quem roda o script pode ter cache negativo do domínio recém
+# criado, e é a visão do servidor que importa para o Let's Encrypt.
+RESOLVED="$(ssh -o BatchMode=yes "root@${HOST}" \
+    "getent hosts '${DOMAIN}' | awk '{print \$1}' | head -1" 2>/dev/null || true)"
+
 if [ "${RESOLVED}" != "${HOST}" ]; then
     printf '\033[1;33m'
     echo "AVISO: ${DOMAIN} resolve para '${RESOLVED:-nada}', não para ${HOST}."
     echo "O Let's Encrypt valida por HTTP e vai falhar enquanto isso não bater."
     printf '\033[0m'
-    read -rp "Continuar mesmo assim? [s/N] " RESP
-    [ "${RESP}" = "s" ] || exit 1
+    if [ "${ASSUME_YES:-0}" = "1" ]; then
+        echo "ASSUME_YES=1: seguindo mesmo assim."
+    else
+        read -rp "Continuar mesmo assim? [s/N] " RESP
+        [ "${RESP}" = "s" ] || exit 1
+    fi
 fi
 
 # --- Hardening -------------------------------------------------------------
