@@ -30,6 +30,10 @@ docker compose exec api php artisan migrate --seed
 | API | http://localhost:8100/api/v1 |
 | PostgreSQL | localhost:5433 |
 | Redis | localhost:6380 |
+| Mailpit (e-mails de teste) | http://localhost:8125 |
+
+Nenhum e-mail sai da máquina em desenvolvimento: tudo cai no Mailpit, onde
+dá para ver o HTML renderizado e a fonte da mensagem.
 
 Conta de desenvolvimento criada pelo seed: `admin@orbital.local` / `password`
 (existe apenas fora de produção).

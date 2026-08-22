@@ -86,7 +86,48 @@ do certificado é validada por HTTP, e falha em domínio que não resolve.
 
 ---
 
-## 3. Deploys seguintes
+## 3. E-mail (uma vez)
+
+A plataforma manda e-mail transacional — recuperação de senha, e o que vier
+depois. Em desenvolvimento tudo cai no Mailpit e nada sai da máquina; em
+produção o transporte é o Resend (ADR 0009).
+
+```bash
+# no .env.production
+MAIL_MAILER=resend
+RESEND_API_KEY=re_...
+MAIL_FROM_ADDRESS=nao-responda@orbitalexperiments.com
+```
+
+**Os registros DNS vêm antes da chave.** Sem eles a mensagem sai e cai em spam,
+e e-mail de recuperação em spam é o mesmo que e-mail não enviado. No painel da
+Hostinger, na zona do domínio:
+
+| Tipo | Nome | Conteúdo |
+|---|---|---|
+| TXT | `@` | `v=spf1 include:amazonses.com ~all` (o valor exato aparece no painel do Resend) |
+| TXT | `resend._domainkey` | a chave DKIM que o Resend gera |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:voce@orbitalexperiments.com` |
+
+`p=none` no começo é deliberado: DMARC em modo de observação relata sem
+descartar. Endurecer para `quarantine` depois de algumas semanas de relatório
+limpo evita bloquear e-mail legítimo por um SPF mal ajustado.
+
+Para conferir de ponta a ponta depois de subir:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api php artisan tinker
+# >>> Mail::raw('teste', fn ($m) => $m->to('seu@email.com')->subject('Orbital'));
+```
+
+O envio é enfileirado (ADR 0009), então **o worker precisa estar de pé** — se o
+serviço `queue` estiver parado, o e-mail entra na fila e nunca sai. Vale checar
+`docker compose -f docker-compose.prod.yml ps` quando um usuário disser que o
+link não chegou.
+
+---
+
+## 4. Deploys seguintes
 
 ```bash
 ssh deploy@SEU_IP 'cd ~/orbital && ./deploy/deploy.sh'

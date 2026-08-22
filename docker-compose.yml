@@ -73,6 +73,20 @@ services:
     volumes:
       - redisdata:/data
 
+  # Servidor SMTP de mentira: captura tudo que a aplicação envia e mostra numa
+  # interface web, com o HTML renderizado e a fonte da mensagem. Nada sai da
+  # máquina — em desenvolvimento, um endereço errado num teste não pode virar
+  # e-mail de verdade para um estranho.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "${MAILPIT_PORT:-8125}:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpitdata:/data
+
   web:
     image: node:24-alpine
     working_dir: /app
@@ -96,3 +110,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  mailpitdata:

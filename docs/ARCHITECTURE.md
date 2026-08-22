@@ -184,3 +184,4 @@ perigosos.
 | [0006](adr/0006-spec-em-jsonb.md) | `spec` do módulo em JSONB |
 | [0007](adr/0007-simulacao-no-cliente.md) | Simulação executa no cliente |
 | [0008](adr/0008-organizacao-por-dominio.md) | Organização por domínio no Laravel |
+| [0009](adr/0009-email-transacional.md) | E-mail transacional: link para o frontend, envio em fila |

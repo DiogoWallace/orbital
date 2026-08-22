@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | URL do frontend
+    |--------------------------------------------------------------------------
+    |
+    | Onde o Next atende. Todo link que sai num e-mail aponta para cá, e não
+    | para a API: quem clica é uma pessoa, e pessoa precisa cair numa página.
+    |
+    */
+
+    'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
