@@ -64,6 +64,24 @@ npm run test       # física dos módulos (Vitest)
 npm run typecheck  # tsc --noEmit
 ```
 
+## Imagens
+
+As imagens do James Webb na landing são da **ESA/Webb**, sob
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). O crédito de cada uma
+aparece junto da imagem, com link ativo, como a licença exige — mexer nisso
+quebra a conformidade, não só o layout.
+
+Os arquivos versionados em `apps/web/public/webb/` são WebP convertidos a partir
+dos JPEG de divulgação. Para acrescentar outra:
+
+```bash
+# baixe o JPEG em apps/web/.webb-src/<id-da-esa>.jpg, mapeie o nome no script
+docker compose exec web node scripts/processar-webb.mjs
+```
+
+Depois acrescente a entrada em `apps/web/src/lib/webb.ts`, com os dados do
+objeto copiados da página da ESA — não de memória.
+
 ## Quando algo não sobe
 
 **`Permission denied` em `storage/`** — a imagem da API roda com o UID do host

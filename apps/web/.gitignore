@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# JPEG originais baixados da ESA/Webb. Só os WebP convertidos são
+# versionados — ver apps/web/scripts/processar-webb.mjs.
+.webb-src/
