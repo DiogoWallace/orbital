@@ -44,6 +44,10 @@ services:
       NODE_ENV: production
       # Chamadas server-side do BFF continuam internas à rede do Compose.
       API_INTERNAL_URL: http://nginx
+      # Em produção API e site dividem o domínio; o navegador chega na API pelo
+      # mesmo endereço, e o Caddy roteia /api/* para o nginx.
+      API_PUBLIC_URL: https://${SITE_DOMAIN}
+      GOOGLE_LOGIN_ENABLED: ${GOOGLE_LOGIN_ENABLED:-false}
       NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN}
     depends_on:
       - nginx

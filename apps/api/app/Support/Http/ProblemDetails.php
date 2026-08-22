@@ -111,6 +111,7 @@ final class ProblemDetails
             404 => 'O recurso solicitado não existe ou não está disponível.',
             405 => 'Este método não é aceito neste endereço.',
             429 => 'Muitas requisições em pouco tempo. Tente novamente em instantes.',
+            503 => 'Este recurso não está disponível neste ambiente.',
             default => self::titleForStatus($status),
         };
     }
@@ -124,6 +125,7 @@ final class ProblemDetails
             405 => 'Método não permitido',
             409 => 'Conflito',
             429 => 'Muitas requisições',
+            503 => 'Serviço indisponível',
             default => 'Erro na requisição',
         };
     }

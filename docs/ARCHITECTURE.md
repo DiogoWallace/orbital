@@ -186,3 +186,4 @@ perigosos.
 | [0008](adr/0008-organizacao-por-dominio.md) | Organização por domínio no Laravel |
 | [0009](adr/0009-email-transacional.md) | E-mail transacional: link para o frontend, envio em fila |
 | [0010](adr/0010-verificacao-de-email-porta-suave.md) | Verificação de e-mail com porta suave |
+| [0011](adr/0011-login-com-google.md) | Login com o Google: OAuth na API, ticket para o BFF |

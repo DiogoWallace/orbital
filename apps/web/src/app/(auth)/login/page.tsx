@@ -1,20 +1,34 @@
 import Link from "next/link";
+import { GoogleButton } from "@/components/ui/GoogleButton";
 import { Panel } from "@/components/ui/Panel";
 import { AuthForm } from "./AuthForm";
 
 export const metadata = { title: "Entrar" };
 
+/** O que deu errado na volta do Google, em português. */
+const ERROS: Record<string, string> = {
+  cancelado: "Você cancelou a entrada pelo Google.",
+  expirado: "A janela de entrada expirou. Tente de novo.",
+  estado: "A volta do Google não conferiu. Comece o login novamente.",
+  incompleto: "A resposta do Google veio incompleta. Tente de novo.",
+  falhou: "Não foi possível entrar com o Google agora.",
+  indisponivel: "O login com o Google não está disponível neste ambiente.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ proximo?: string; modo?: string; senha?: string }>;
+  searchParams: Promise<{ proximo?: string; modo?: string; senha?: string; erro?: string }>;
 }) {
-  const { proximo, modo, senha } = await searchParams;
+  const { proximo, modo, senha, erro } = await searchParams;
   const mode = modo === "criar" ? "register" : "login";
 
   // Só caminhos internos são aceitos como destino: aceitar uma URL absoluta
   // aqui transformaria o login num redirecionador aberto.
   const next = proximo?.startsWith("/") ? proximo : "/dashboard";
+
+  const googleAtivo = process.env.GOOGLE_LOGIN_ENABLED === "true";
+  const mensagemDeErro = erro ? (ERROS[erro] ?? ERROS.falhou) : null;
 
   return (
     <Panel className="p-6">
@@ -38,6 +52,29 @@ export default async function LoginPage({
         </p>
       ) : null}
 
+      {mensagemDeErro ? (
+        <p
+          role="alert"
+          className="mb-5 rounded-[var(--radius-control)] border border-[var(--color-line)] bg-[var(--color-surface-raised)] px-3 py-2 text-xs text-[var(--color-signal-danger)]"
+        >
+          {mensagemDeErro}
+        </p>
+      ) : null}
+
+      {googleAtivo ? (
+        <>
+          <GoogleButton />
+
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[var(--color-line)]" />
+            <span className="text-[10px] tracking-widest text-[var(--color-ink-faint)] uppercase">
+              ou
+            </span>
+            <span className="h-px flex-1 bg-[var(--color-line)]" />
+          </div>
+        </>
+      ) : null}
+
       <AuthForm mode={mode} next={next} />
 
       {mode === "login" ? (
@@ -48,6 +85,15 @@ export default async function LoginPage({
           >
             Esqueci minha senha
           </Link>
+        </p>
+      ) : null}
+
+      {/* Conta criada pelo Google não tem senha, e o erro de login é o mesmo
+          genérico de sempre — de propósito, para não revelar quais e-mails
+          existem. Esta dica é o que evita que a pessoa fique tentando. */}
+      {googleAtivo && mode === "login" ? (
+        <p className="mt-4 text-center text-xs text-[var(--color-ink-faint)]">
+          Se você criou a conta pelo Google, entre pelo botão acima.
         </p>
       ) : null}
 

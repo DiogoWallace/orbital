@@ -25,7 +25,12 @@ class LoginController extends Controller
         // de resposta não denuncie quais e-mails existem.
         $password = (string) $request->string('password');
 
-        $passwordMatches = $user === null
+        // Conta criada pelo Google não tem senha (ADR 0011). Ela cai no mesmo
+        // erro genérico de propósito: dizer "esta conta entra pelo Google"
+        // devolveria justamente a informação que a mensagem única esconde. A
+        // dica fica na tela de login, visível para todo mundo, sem depender de
+        // qual e-mail foi digitado.
+        $passwordMatches = $user === null || $user->password === null
             ? (bool) Hash::make($password) && false
             : Hash::check($password, $user->password);
 

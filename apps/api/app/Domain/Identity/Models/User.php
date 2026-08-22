@@ -58,6 +58,12 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->notify(new ResetPasswordNotification($token));
     }
 
+    /** Provedores externos ligados a esta conta (Google, e o que vier). */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     /** Módulos que este usuário assina como autor. */
     public function authoredModules(): HasMany
     {

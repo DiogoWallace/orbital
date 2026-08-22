@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Auth\ExchangeTicketController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
+use App\Http\Controllers\Api\V1\Auth\GoogleCallbackController;
+use App\Http\Controllers\Api\V1\Auth\GoogleRedirectController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
@@ -25,6 +28,8 @@ use Illuminate\Support\Facades\Route;
 | bootstrap; aqui declaramos apenas a versão.
 |
 | O consumidor esperado é o BFF do Next (ADR 0004) — nunca o browser direto.
+| As duas exceções são o redirect e o callback do Google, que por natureza são
+| navegação do usuário (ADR 0011).
 |
 */
 
@@ -46,6 +51,15 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('throttle:5,10')->group(function (): void {
         Route::post('auth/register', RegisterController::class);
         Route::post('auth/forgot-password', ForgotPasswordController::class);
+    });
+
+    // --- Login com o Google -----------------------------------------------
+    // Duas rotas de navegação e uma de troca. O token nunca aparece na URL:
+    // o callback redireciona com um ticket de uso único, que só o BFF resgata.
+    Route::middleware('throttle:20,1')->group(function (): void {
+        Route::get('auth/google/redirect', GoogleRedirectController::class);
+        Route::get('auth/google/callback', GoogleCallbackController::class);
+        Route::post('auth/exchange', ExchangeTicketController::class);
     });
 
     // --- Catálogo público -------------------------------------------------
@@ -74,10 +88,11 @@ Route::prefix('v1')->group(function (): void {
             ->post('auth/email/verification-notification', ResendVerificationController::class);
 
         // --- Escrita: exige e-mail confirmado -----------------------------
-        // A porta suave: sem confirmar, dá para navegar o catálogo e rodar
-        // qualquer simulação — o que roda no cliente (ADR 0007) e não custa
-        // nada a ninguém. O que fica gravado com um nome e um e-mail junto
-        // espera a confirmação de que o endereço é mesmo de quem cadastrou.
+        // A porta suave (ADR 0010): sem confirmar, dá para navegar o catálogo
+        // e rodar qualquer simulação — o que roda no cliente (ADR 0007) e não
+        // custa nada a ninguém. O que fica gravado com um nome e um e-mail
+        // junto espera a confirmação de que o endereço é mesmo de quem
+        // cadastrou.
         Route::middleware('verified')->group(function (): void {
             Route::post('simulation-runs', [SimulationRunController::class, 'store']);
         });

@@ -102,6 +102,11 @@ services:
       # No browser o Next expõe seus próprios route handlers (BFF);
       # server-side ele fala com o nginx pela rede interna do Compose.
       API_INTERNAL_URL: http://nginx
+      # Endereço da API pelo qual o *navegador* consegue passar. Usado só para
+      # mandar o usuário ao Google: o resto do tráfego vai pela rede interna.
+      API_PUBLIC_URL: http://localhost:${API_PORT:-8100}
+      # O botão do Google só aparece quando há credenciais configuradas.
+      GOOGLE_LOGIN_ENABLED: ${GOOGLE_LOGIN_ENABLED:-false}
       NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_PORT:-3100}
       WATCHPACK_POLLING: "false"
     depends_on:

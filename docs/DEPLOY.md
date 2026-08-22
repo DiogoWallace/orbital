@@ -127,7 +127,42 @@ link não chegou.
 
 ---
 
-## 4. Deploys seguintes
+## 4. Login com o Google (opcional)
+
+Enquanto `GOOGLE_LOGIN_ENABLED=false`, o botão não aparece e o resto da
+plataforma funciona igual. Para ligar:
+
+1. Em [console.cloud.google.com](https://console.cloud.google.com) → **APIs e
+   serviços** → **Credenciais** → criar **ID do cliente OAuth 2.0**, tipo
+   *Aplicativo da Web*.
+2. Em **URIs de redirecionamento autorizados**, colocar exatamente:
+
+   ```
+   https://orbitalexperiments.com/api/v1/auth/google/callback
+   ```
+
+   O valor precisa bater caractere a caractere com `GOOGLE_REDIRECT_URI` — o
+   Google recusa a troca do código se divergir, inclusive por uma barra no fim.
+3. Preencher no `.env.production`:
+
+   ```bash
+   GOOGLE_LOGIN_ENABLED=true
+   GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=...
+   GOOGLE_REDIRECT_URI=https://orbitalexperiments.com/api/v1/auth/google/callback
+   ```
+
+Para testar em desenvolvimento, o mesmo cliente serve: acrescente
+`http://localhost:8100/api/v1/auth/google/callback` à lista de URIs autorizadas
+e ligue `GOOGLE_LOGIN_ENABLED=true` no `.env` da raiz.
+
+O `client_secret` fica só na API (ADR 0011). O navegador nunca o vê, e o token
+de sessão não passa pela URL: o callback volta com um ticket de uso único,
+válido por um minuto, que só o BFF resgata.
+
+---
+
+## 5. Deploys seguintes
 
 ```bash
 ssh deploy@SEU_IP 'cd ~/orbital && ./deploy/deploy.sh'

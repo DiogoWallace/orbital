@@ -64,6 +64,24 @@ npm run test       # física dos módulos (Vitest)
 npm run typecheck  # tsc --noEmit
 ```
 
+## Quando algo não sobe
+
+**`Permission denied` em `storage/`** — a imagem da API roda com o UID do host
+(`docker/php/Dockerfile`), e uma imagem construída antes disso roda como
+`www-data`, que não escreve no bind mount. O sintoma costuma ser a suíte de
+testes falhando em massa com `UnexpectedValueException` do Monolog:
+
+```bash
+docker compose build api queue && docker compose up -d api queue
+```
+
+**502 do nginx depois de `docker compose restart api`** — o nginx resolve o
+endereço do php-fpm uma vez, na subida, e o container reiniciado ganha IP novo:
+
+```bash
+docker compose restart nginx
+```
+
 ## Documentação
 
 | Documento | Assunto |
