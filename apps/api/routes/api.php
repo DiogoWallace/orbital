@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\DisciplineController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\ProjectController;
@@ -32,6 +34,14 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('throttle:6,1')->group(function (): void {
         Route::post('auth/register', RegisterController::class);
         Route::post('auth/login', LoginController::class);
+        Route::post('auth/reset-password', ResetPasswordController::class);
+    });
+
+    // Balde próprio e mais estreito: cada pedido aqui dispara um e-mail para
+    // uma caixa que não é a de quem pediu. Sem limite, o endpoint vira uma
+    // ferramenta gratuita de importunar terceiros a partir do nosso domínio.
+    Route::middleware('throttle:5,10')->group(function (): void {
+        Route::post('auth/forgot-password', ForgotPasswordController::class);
     });
 
     // --- Catálogo público -------------------------------------------------

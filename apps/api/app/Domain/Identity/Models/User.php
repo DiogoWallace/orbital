@@ -6,6 +6,7 @@ namespace App\Domain\Identity\Models;
 
 use App\Domain\Catalog\Models\Module;
 use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Notifications\ResetPasswordNotification;
 use App\Domain\Projects\Models\Project;
 use App\Domain\Simulation\Models\SimulationRun;
 use Database\Factories\UserFactory;
@@ -32,6 +33,17 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Troca a notificação padrão do Laravel pela nossa.
+     *
+     * A do framework monta um link para uma rota web que não existe aqui: esta
+     * é uma API sem telas. O link precisa apontar para o Next (ADR 0004).
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     /** Módulos que este usuário assina como autor. */

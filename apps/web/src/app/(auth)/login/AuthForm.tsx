@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 type Mode = "login" | "register";
 
@@ -111,37 +112,5 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         {pending ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
       </Button>
     </form>
-  );
-}
-
-function Field({
-  label,
-  name,
-  errors,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  name: string;
-  errors?: string[];
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={name} className="text-xs text-[var(--color-ink-muted)]">
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        aria-invalid={errors ? true : undefined}
-        aria-describedby={errors ? `${name}-error` : undefined}
-        className="rounded-[var(--radius-control)] border border-[var(--color-line-strong)] bg-[var(--color-void)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--accent)]"
-        {...props}
-      />
-      {errors ? (
-        <p id={`${name}-error`} className="text-xs text-[var(--color-signal-danger)]">
-          {errors[0]}
-        </p>
-      ) : null}
-    </div>
   );
 }
