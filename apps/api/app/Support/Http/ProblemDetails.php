@@ -65,6 +65,12 @@ final class ProblemDetails
                 'Não autenticado',
                 'Esta operação exige uma sessão válida.',
             ],
+            $e instanceof EmailNotVerifiedException => [
+                403,
+                'https://orbital.local/problems/email-not-verified',
+                'E-mail não confirmado',
+                $e->getMessage(),
+            ],
             $e instanceof AuthorizationException => [
                 403,
                 'https://orbital.local/problems/forbidden',

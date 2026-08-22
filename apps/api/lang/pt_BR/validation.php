@@ -11,23 +11,28 @@ declare(strict_types=1);
 | hoje. Chave que faltar cai no `fallback_locale`, então acrescentar tradução
 | é aditivo — nunca quebra o que já existe.
 |
-| `attributes` é o que faz a diferença entre "O campo email é obrigatório" e
-| "O e-mail é obrigatório".
+| Os nomes em `attributes` carregam o artigo ("a senha"), porque em português
+| a concordância exige. Onde o atributo abre a frase usamos `:Attribute`, que
+| o Laravel substitui pela versão com inicial maiúscula — sem isso a mensagem
+| sai como "a senha precisa ter pelo menos 12 caracteres.".
+|
+| As regras que não combinam com artigo — `email`, `confirmed` — foram
+| reescritas sem o placeholder, em vez de forçar uma frase torta.
 |
 */
 
 return [
-    'confirmed' => 'A confirmação de :attribute não confere.',
-    'email' => 'Informe um :attribute válido.',
+    'confirmed' => 'A confirmação não confere.',
+    'email' => 'Endereço de e-mail inválido.',
     'max' => [
-        'string' => ':attribute não pode ter mais que :max caracteres.',
+        'string' => ':Attribute não pode ter mais que :max caracteres.',
     ],
     'min' => [
-        'string' => ':attribute precisa ter pelo menos :min caracteres.',
+        'string' => ':Attribute precisa ter pelo menos :min caracteres.',
     ],
     'required' => 'Informe :attribute.',
-    'string' => ':attribute precisa ser um texto.',
-    'unique' => 'Este :attribute já está em uso.',
+    'string' => ':Attribute precisa ser um texto.',
+    'unique' => ':Attribute já está em uso.',
 
     // Regra `Password`, decomposta em mensagens próprias.
     'password' => [

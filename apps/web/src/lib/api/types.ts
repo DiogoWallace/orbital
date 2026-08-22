@@ -121,6 +121,8 @@ export interface User {
   email: string;
   roles: string[];
   isCurator: boolean;
+  /** Falso libera a navegação, mas bloqueia o que grava (porta suave). */
+  emailVerified: boolean;
   createdAt: string | null;
 }
 

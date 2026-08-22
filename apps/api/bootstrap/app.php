@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Support\Http\ProblemDetails;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // A API é stateless por decisão (ADR 0004): nenhum middleware de sessão
         // ou de CSRF entra no grupo `api`. O token vem no header Authorization,
         // colocado lá pelo BFF do Next.
+
+        // Sobrescreve o alias `verified` do framework: o nosso responde em
+        // RFC 7807 com um `type` próprio, em vez de um 403 em inglês.
+        $middleware->alias([
+            'verified' => EnsureEmailIsVerified::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

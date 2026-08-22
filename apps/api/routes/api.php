@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Auth\ResendVerificationController;
 use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
+use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\DisciplineController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\ProjectController;
@@ -32,15 +34,17 @@ Route::prefix('v1')->group(function (): void {
     // Throttle apertado: estes são os endpoints que um ataque de força bruta
     // procura primeiro.
     Route::middleware('throttle:6,1')->group(function (): void {
-        Route::post('auth/register', RegisterController::class);
         Route::post('auth/login', LoginController::class);
         Route::post('auth/reset-password', ResetPasswordController::class);
+        Route::post('auth/email/verify', VerifyEmailController::class);
     });
 
-    // Balde próprio e mais estreito: cada pedido aqui dispara um e-mail para
-    // uma caixa que não é a de quem pediu. Sem limite, o endpoint vira uma
-    // ferramenta gratuita de importunar terceiros a partir do nosso domínio.
+    // Balde próprio e mais estreito para o que dispara e-mail. Cada requisição
+    // aqui manda uma mensagem para uma caixa que não é a de quem pediu — sem
+    // limite, viram ferramenta gratuita de importunar terceiros a partir do
+    // nosso domínio.
     Route::middleware('throttle:5,10')->group(function (): void {
+        Route::post('auth/register', RegisterController::class);
         Route::post('auth/forgot-password', ForgotPasswordController::class);
     });
 
@@ -65,6 +69,17 @@ Route::prefix('v1')->group(function (): void {
         Route::get('me', MeController::class);
 
         Route::get('me/simulation-runs', [SimulationRunController::class, 'index']);
-        Route::post('simulation-runs', [SimulationRunController::class, 'store']);
+
+        Route::middleware('throttle:3,10')
+            ->post('auth/email/verification-notification', ResendVerificationController::class);
+
+        // --- Escrita: exige e-mail confirmado -----------------------------
+        // A porta suave: sem confirmar, dá para navegar o catálogo e rodar
+        // qualquer simulação — o que roda no cliente (ADR 0007) e não custa
+        // nada a ninguém. O que fica gravado com um nome e um e-mail junto
+        // espera a confirmação de que o endereço é mesmo de quem cadastrou.
+        Route::middleware('verified')->group(function (): void {
+            Route::post('simulation-runs', [SimulationRunController::class, 'store']);
+        });
     });
 });

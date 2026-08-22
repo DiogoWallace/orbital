@@ -7,6 +7,7 @@ namespace App\Domain\Identity\Actions;
 use App\Domain\Identity\Data\RegisterUserData;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,7 +20,7 @@ final class RegisterUser
 {
     public function execute(RegisterUserData $data): User
     {
-        return DB::transaction(function () use ($data): User {
+        $user = DB::transaction(function () use ($data): User {
             $user = User::create([
                 'name' => $data->name,
                 'email' => $data->email,
@@ -30,5 +31,16 @@ final class RegisterUser
 
             return $user;
         });
+
+        // Fora da transação, e não dentro: o e-mail de confirmação vai para a
+        // fila do Redis, e um worker pode pegá-lo antes do commit — buscaria
+        // um usuário que ainda não existe. Aqui a linha já está gravada.
+        //
+        // O listener é o que o Laravel registra para este evento. A conta
+        // nasce utilizável (porta suave): dá para explorar e simular sem
+        // confirmar, e só as ações que persistem exigem a confirmação.
+        event(new Registered($user));
+
+        return $user;
     }
 }

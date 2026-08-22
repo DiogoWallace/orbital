@@ -89,6 +89,9 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         type="password"
         autoComplete={mode === "login" ? "current-password" : "new-password"}
         errors={fieldErrors.password}
+        // A regra aparece antes da tentativa: descobrir a política pelo erro
+        // é o caminho mais curto para a pessoa desistir do cadastro.
+        hint={mode === "register" ? "Pelo menos 12 caracteres, com letras e números." : undefined}
         required
       />
 

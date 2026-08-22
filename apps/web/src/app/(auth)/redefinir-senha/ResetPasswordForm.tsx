@@ -61,7 +61,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email: stri
         type="password"
         autoComplete="new-password"
         errors={fieldErrors.password}
-        hint="Pelo menos 8 caracteres."
+        hint="Pelo menos 12 caracteres, com letras e números."
         required
         autoFocus
       />

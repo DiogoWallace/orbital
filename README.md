@@ -36,7 +36,9 @@ Nenhum e-mail sai da máquina em desenvolvimento: tudo cai no Mailpit, onde
 dá para ver o HTML renderizado e a fonte da mensagem.
 
 Conta de desenvolvimento criada pelo seed: `admin@orbital.local` / `password`
-(existe apenas fora de produção).
+(existe apenas fora de produção). Ela nasce com o e-mail não confirmado, então
+a plataforma mostra o aviso de confirmação pendente — o link do "Reenviar" cai
+no Mailpit.
 
 ## Comandos
 

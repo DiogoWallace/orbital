@@ -24,6 +24,9 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'roles' => $this->getRoleNames()->values()->all(),
             'isCurator' => $this->isCurator(),
+            // O booleano, e não a data: o frontend só precisa saber se mostra
+            // o aviso de confirmação pendente e se libera as ações de escrita.
+            'emailVerified' => $this->hasVerifiedEmail(),
             'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }

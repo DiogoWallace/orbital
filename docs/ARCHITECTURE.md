@@ -185,3 +185,4 @@ perigosos.
 | [0007](adr/0007-simulacao-no-cliente.md) | Simulação executa no cliente |
 | [0008](adr/0008-organizacao-por-dominio.md) | Organização por domínio no Laravel |
 | [0009](adr/0009-email-transacional.md) | E-mail transacional: link para o frontend, envio em fila |
+| [0010](adr/0010-verificacao-de-email-porta-suave.md) | Verificação de e-mail com porta suave |

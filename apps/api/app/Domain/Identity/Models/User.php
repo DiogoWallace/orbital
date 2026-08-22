@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Domain\Identity\Models;
 
 use App\Domain\Catalog\Models\Module;
+use App\Domain\Identity\Actions\SendEmailVerificationLink;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Notifications\ResetPasswordNotification;
 use App\Domain\Projects\Models\Project;
 use App\Domain\Simulation\Models\SimulationRun;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +23,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
@@ -33,6 +35,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Mesma troca feita para a recuperação de senha, pelo mesmo motivo: a
+     * notificação do framework monta uma URL assinada para uma rota web que
+     * não existe nesta API (ADR 0009).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        app(SendEmailVerificationLink::class)->execute($this);
     }
 
     /**
