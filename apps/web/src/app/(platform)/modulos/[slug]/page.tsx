@@ -13,13 +13,13 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const module = await getModule(slug);
+  const scienceModule = await getModule(slug);
 
-  if (!module) return { title: "Módulo não encontrado" };
+  if (!scienceModule) return { title: "Módulo não encontrado" };
 
   return {
-    title: module.title,
-    description: module.summary ?? module.subtitle ?? undefined,
+    title: scienceModule.title,
+    description: scienceModule.summary ?? scienceModule.subtitle ?? undefined,
   };
 }
 
@@ -32,85 +32,85 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  */
 export default async function ModulePage({ params }: PageProps) {
   const { slug } = await params;
-  const module = await getModule(slug);
+  const scienceModule = await getModule(slug);
 
-  if (!module) notFound();
+  if (!scienceModule) notFound();
 
   return (
     <article
-      style={{ ["--accent" as string]: accentVariable(module.discipline?.accent) }}
+      style={{ ["--accent" as string]: accentVariable(scienceModule.discipline?.accent) }}
     >
       <header className="border-b border-[var(--color-line)] pb-8">
         <nav className="flex items-center gap-2 text-xs text-[var(--color-ink-faint)]">
           <Link href="/explorar" className="hover:text-[var(--color-ink)]">
             Explorar
           </Link>
-          {module.discipline ? (
+          {scienceModule.discipline ? (
             <>
               <span aria-hidden>/</span>
               <Link
-                href={`/disciplinas/${module.discipline.slug}`}
+                href={`/disciplinas/${scienceModule.discipline.slug}`}
                 className="text-[var(--accent)] hover:underline"
               >
-                {module.discipline.name}
+                {scienceModule.discipline.name}
               </Link>
             </>
           ) : null}
-          {module.topic ? (
+          {scienceModule.topic ? (
             <>
               <span aria-hidden>/</span>
-              <span>{module.topic.name}</span>
+              <span>{scienceModule.topic.name}</span>
             </>
           ) : null}
         </nav>
 
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-balance">
-          {module.title}
+          {scienceModule.title}
         </h1>
 
-        {module.subtitle ? (
+        {scienceModule.subtitle ? (
           <p className="mt-2 text-lg text-[var(--color-ink-muted)]">
-            {module.subtitle}
+            {scienceModule.subtitle}
           </p>
         ) : null}
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          <Badge tone="accent">{module.kindLabel}</Badge>
-          <Badge>{module.difficultyLabel}</Badge>
-          {module.estimatedMinutes ? (
+          <Badge tone="accent">{scienceModule.kindLabel}</Badge>
+          <Badge>{scienceModule.difficultyLabel}</Badge>
+          {scienceModule.estimatedMinutes ? (
             <span className="tabular text-xs text-[var(--color-ink-faint)]">
-              {module.estimatedMinutes} min
+              {scienceModule.estimatedMinutes} min
             </span>
           ) : null}
-          {module.status !== "published" ? (
+          {scienceModule.status !== "published" ? (
             <Badge tone="warn">Rascunho — visível para curadoria</Badge>
           ) : null}
         </div>
 
-        {module.summary ? (
+        {scienceModule.summary ? (
           <p className="mt-6 max-w-3xl leading-relaxed text-[var(--color-ink-muted)]">
-            {module.summary}
+            {scienceModule.summary}
           </p>
         ) : null}
       </header>
 
       <div className="py-8">
-        <ModuleRenderer module={module} />
+        <ModuleRenderer module={scienceModule} />
       </div>
 
-      {module.sections && module.sections.length > 0 ? (
+      {scienceModule.sections && scienceModule.sections.length > 0 ? (
         <div className="mx-auto max-w-3xl border-t border-[var(--color-line)] pt-10">
-          <ModuleSections sections={module.sections} />
+          <ModuleSections sections={scienceModule.sections} />
         </div>
       ) : null}
 
-      {module.projects && module.projects.length > 0 ? (
+      {scienceModule.projects && scienceModule.projects.length > 0 ? (
         <aside className="mx-auto mt-12 max-w-3xl">
           <h2 className="text-xs tracking-wide text-[var(--color-ink-faint)] uppercase">
             Faz parte de
           </h2>
           <ul className="mt-3 flex flex-col gap-2">
-            {module.projects.map((project) => (
+            {scienceModule.projects.map((project) => (
               <li key={project.id}>
                 <Link
                   href={`/projetos/${project.slug}`}

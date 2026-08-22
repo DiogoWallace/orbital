@@ -97,6 +97,23 @@ O backup vem antes porque migration com erro é exatamente quando ele importa;
 o build vem antes da troca dos containers para que uma falha de compilação não
 derrube o que já está no ar.
 
+### Construir na VPS ou puxar do registry
+
+Os dois modos usam o mesmo `docker-compose.prod.yml`: cada serviço declara
+`image:` **e** `build:`, então a mesma tag serve para construir e para puxar.
+
+| Modo | Comando | Quando usar |
+|---|---|---|
+| Construir na VPS | `./deploy/deploy.sh` | servidor ocioso; nenhum registry envolvido |
+| Puxar do GHCR | `docker compose -f docker-compose.prod.yml --env-file .env.production pull && ... up -d` | servidor com pouca CPU, ou dividido com outra aplicação |
+
+O CI (`.github/workflows/ci.yml`) publica as três imagens no GHCR a cada push
+na `main` que passe nos testes. Ele usa o `GITHUB_TOKEN` do próprio job — não
+existe token pessoal envolvido, nem escopo extra na conta.
+
+Num servidor de 1 vCPU, construir localmente satura o processador por vários
+minutos. Se a VPS passar a hospedar outra coisa, migre para o modo `pull`.
+
 ---
 
 ## Operação

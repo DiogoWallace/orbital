@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { LineChart, type ChartPoint } from "@/components/data/LineChart";
 import { ParameterPanel } from "@/components/lab/ParameterPanel";
 import { ReadoutGrid } from "@/components/lab/ReadoutGrid";
@@ -40,49 +40,49 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
   const [running, setRunning] = useState(false);
   const [timeScale, setTimeScale] = useState(60);
 
-  // O simulador vive fora do ciclo de render: ele muda 60 vezes por segundo, e
-  // guardá-lo em estado dispararia um render por quadro.
-  const simulatorRef = useRef<OrbitSimulator | null>(null);
-  const lastReadoutRef = useRef(0);
-  const seriesRef = useRef<{ altitude: ChartPoint[]; speed: ChartPoint[] }>({
-    altitude: [],
-    speed: [],
-  });
+  const params = useMemo<OrbitParams>(() => toParams(values), [values]);
 
-  // Sinal de quadro: um contador barato que faz o canvas redesenhar sem
-  // carregar a trajetória inteira pelo estado do React.
-  const [frame, setFrame] = useState(0);
-  const [readout, setReadout] = useState(() => emptyReadout());
-  const [series, setSeries] = useState<{ altitude: ChartPoint[]; speed: ChartPoint[] }>({
-    altitude: [],
-    speed: [],
-  });
-
-  const params = useMemo<OrbitParams>(
+  /**
+   * Simulador e séries nascem juntos e morrem juntos.
+   *
+   * Mudar uma variável cria um simulador novo em vez de reiniciar o antigo —
+   * assim o rastro e os gráficos zeram por construção, sem efeito colateral
+   * nem `setState` dentro de efeito. Misturar duas físicas no mesmo desenho
+   * deixa de ser possível.
+   */
+  const world = useMemo(
     () => ({
-      centralMass: Number(values.centralMass ?? 1),
-      altitude: Number(values.altitude ?? 400),
-      speedFactor: Number(values.speedFactor ?? 1),
-      flightAngle: Number(values.flightAngle ?? 0),
+      simulator: new OrbitSimulator(params),
+      series: { altitude: [] as ChartPoint[], speed: [] as ChartPoint[] },
     }),
-    [values],
+    [params],
   );
 
-  if (simulatorRef.current === null) {
-    simulatorRef.current = new OrbitSimulator(params);
-  }
+  // Dois relógios: `frame` acompanha o canvas a 60 Hz; `tick` governa
+  // mostradores e gráficos a 10 Hz. O olho não lê um número que muda 60 vezes
+  // por segundo, e recalcular as séries nessa taxa custaria mais que a própria
+  // simulação.
+  const [frame, setFrame] = useState(0);
+  const [tick, setTick] = useState(0);
+  const lastReadoutRef = useRef(0);
 
-  // Mudar qualquer variável recomeça a trajetória: manter o rastro antigo
-  // misturaria duas físicas diferentes no mesmo desenho. Um efeito sobre
-  // `params`, e não uma chamada dentro de cada handler, garante que a regra
-  // valha para slider, preset e restauração sem se repetir três vezes.
-  useEffect(() => {
-    simulatorRef.current?.reset(params);
-    seriesRef.current = { altitude: [], speed: [] };
-    setSeries({ altitude: [], speed: [] });
-    setReadout(readFrom(simulatorRef.current));
-    setFrame((value) => value + 1);
-  }, [params]);
+  // Derivados, não estado: uma leitura do simulador no instante do `tick`.
+  const readout = useMemo(
+    () => readFrom(world.simulator),
+    // `tick` entra como dependência de propósito: é o sinal de que o estado
+    // interno do simulador avançou.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [world, tick],
+  );
+
+  const charts = useMemo(
+    () => ({
+      altitude: [...world.series.altitude],
+      speed: [...world.series.speed],
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [world, tick],
+  );
 
   const handleParameterChange = useCallback(
     (key: string, value: number | boolean | string) => {
@@ -108,8 +108,7 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
 
   useSimulationLoop(
     (fixedStep, substeps) => {
-      const simulator = simulatorRef.current;
-      if (!simulator) return;
+      const { simulator, series } = world;
 
       simulator.advance(fixedStep, substeps);
       setFrame((value) => value + 1);
@@ -118,9 +117,6 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
         setRunning(false);
       }
 
-      // Mostradores e gráfico atualizam a 10 Hz, não a 60: o olho não lê um
-      // número que muda 60 vezes por segundo, e renderizar tudo isso custaria
-      // mais que a própria simulação.
       const now = performance.now();
       if (now - lastReadoutRef.current < READOUT_INTERVAL) return;
       lastReadoutRef.current = now;
@@ -128,31 +124,22 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
       const elements = simulator.elements;
       const minutes = simulator.current.time / 60;
 
-      pushPoint(seriesRef.current.altitude, { x: minutes, y: elements.altitude });
-      pushPoint(seriesRef.current.speed, { x: minutes, y: elements.speed });
+      pushPoint(series.altitude, { x: minutes, y: elements.altitude });
+      pushPoint(series.speed, { x: minutes, y: elements.speed });
 
-      setReadout(readFrom(simulator));
-      setSeries({
-        altitude: [...seriesRef.current.altitude],
-        speed: [...seriesRef.current.speed],
-      });
+      setTick((value) => value + 1);
     },
     { running, fixedStep: FIXED_STEP, timeScale },
   );
-
-  const impacted = simulatorRef.current?.current.impacted ?? false;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-5">
         <Panel className="overflow-hidden">
-          <div
-            className="grid-paper relative aspect-[4/3] w-full"
-            style={{ containIntrinsicSize: "600px 450px" }}
-          >
-            <OrbitCanvas simulator={simulatorRef.current} frameSignal={frame} />
+          <div className="grid-paper relative aspect-[4/3] w-full">
+            <OrbitCanvas simulator={world.simulator} frameSignal={frame} />
 
-            {impacted ? (
+            {readout.impacted ? (
               <p className="absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full border border-[var(--color-signal-danger)] bg-[var(--color-surface)] px-3 py-1 text-xs text-[var(--color-signal-danger)]">
                 A trajetória cruzou a superfície.
               </p>
@@ -177,7 +164,7 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
               <PanelHeader title={chart.label} />
               <div className="px-2 py-3">
                 <LineChart
-                  points={series[chart.key as "altitude" | "speed"] ?? []}
+                  points={charts[chart.key as "altitude" | "speed"] ?? []}
                   xLabel={chart.xLabel}
                   yLabel={chart.yLabel}
                   className="w-full"
@@ -199,6 +186,16 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
   );
 }
 
+/** Converte os valores do painel nos parâmetros que a física entende. */
+function toParams(values: ParameterValues): OrbitParams {
+  return {
+    centralMass: Number(values.centralMass ?? 1),
+    altitude: Number(values.altitude ?? 400),
+    speedFactor: Number(values.speedFactor ?? 1),
+    flightAngle: Number(values.flightAngle ?? 0),
+  };
+}
+
 function pushPoint(series: ChartPoint[], point: ChartPoint): void {
   series.push(point);
 
@@ -207,17 +204,12 @@ function pushPoint(series: ChartPoint[], point: ChartPoint): void {
   }
 }
 
-function emptyReadout() {
-  return { values: {} as Record<string, number>, elapsed: 0 };
-}
-
-function readFrom(simulator: OrbitSimulator | null) {
-  if (!simulator) return emptyReadout();
-
+function readFrom(simulator: OrbitSimulator) {
   const elements = simulator.elements;
 
   return {
     elapsed: simulator.current.time,
+    impacted: simulator.current.impacted,
     values: {
       apoapsis: elements.apoapsis,
       periapsis: elements.periapsis,

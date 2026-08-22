@@ -18,7 +18,7 @@ export function OrbitCanvas({
   simulator,
   frameSignal,
 }: {
-  simulator: OrbitSimulator | null;
+  simulator: OrbitSimulator;
   /** Muda a cada quadro do laço de simulação, forçando um redesenho. */
   frameSignal: number;
 }) {

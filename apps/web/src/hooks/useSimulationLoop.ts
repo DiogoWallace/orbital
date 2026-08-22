@@ -31,13 +31,20 @@ export function useSimulationLoop(
   onStep: (fixedStep: number, substeps: number) => void,
   { running, fixedStep, timeScale, maxSubsteps = 240 }: LoopOptions,
 ): void {
-  // O callback vive numa ref para que mudar de closure não reinicie o laço —
-  // reiniciar a cada render descartaria o acumulador e travaria a animação.
+  // O callback e as opções vivem em refs para que mudar de closure não reinicie
+  // o laço — reiniciar a cada render descartaria o acumulador e travaria a
+  // animação.
+  //
+  // A atribuição acontece dentro de um efeito, e não durante o render: escrever
+  // em ref no corpo do componente quebra a garantia de que o render é puro, e o
+  // React pode descartar um render sem nunca chegar ao commit.
   const callbackRef = useRef(onStep);
-  callbackRef.current = onStep;
-
   const optionsRef = useRef({ fixedStep, timeScale, maxSubsteps });
-  optionsRef.current = { fixedStep, timeScale, maxSubsteps };
+
+  useEffect(() => {
+    callbackRef.current = onStep;
+    optionsRef.current = { fixedStep, timeScale, maxSubsteps };
+  });
 
   useEffect(() => {
     if (!running) return;
