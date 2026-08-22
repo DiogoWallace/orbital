@@ -21,6 +21,15 @@ set -a; . ./.env.production; set +a
 
 mkdir -p "${BACKUP_DIR}"
 
+# Falha cedo e com a causa explícita. Sem esta checagem, o erro aparece como um
+# "Permission denied" solto no meio do deploy, e o backup silenciosamente não
+# acontece — exatamente na hora em que ele mais importa.
+if [ ! -w "${BACKUP_DIR}" ]; then
+    echo "Sem permissão de escrita em ${BACKUP_DIR} (dono: $(stat -c '%U' "${BACKUP_DIR}"))." >&2
+    echo "Corrija com: sudo chown -R \$(id -u):\$(id -g) ${BACKUP_DIR}" >&2
+    exit 1
+fi
+
 COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
 
 $COMPOSE exec -T postgres pg_dump \

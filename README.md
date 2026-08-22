@@ -3,6 +3,8 @@
 Plataforma científica interativa — um laboratório digital de simulações,
 visualizações e análise de dados em física, astronomia, engenharia e química.
 
+**No ar em [orbitalexperiments.com](https://orbitalexperiments.com)**
+
 ```
 apps/api    Laravel 13  → API REST /api/v1
 apps/web    Next.js 16  → RSC + BFF

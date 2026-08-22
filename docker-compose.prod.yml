@@ -101,7 +101,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/10-extensions.sql:ro
-      - ./storage/backups:/backups
+      # Sem bind mount para os backups: o `pg_dump` do deploy/backup.sh escreve
+      # no host via stdout, não dentro do container. Montar o diretório fazia o
+      # Docker criá-lo como root, e o usuário `deploy` não conseguia gravar.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
       interval: 10s
