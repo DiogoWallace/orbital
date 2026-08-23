@@ -89,3 +89,41 @@ it('devolve erro em formato problem+json', function () {
         ->assertHeader('Content-Type', 'application/problem+json')
         ->assertJsonStructure(['type', 'title', 'status', 'detail', 'instance']);
 });
+
+it('mostra rascunho para a curadoria pelo token, e não só por actingAs', function () {
+    foreach (Role::cases() as $role) {
+        SpatieRole::findOrCreate($role->value, 'web');
+    }
+
+    $curator = User::factory()->create();
+    $curator->assignRole(Role::Curator->value);
+
+    $module = Module::factory()->create(['slug' => 'em-preparo-token']);
+
+    // `actingAs()` popula o guard padrão direto e nunca exercita o caminho do
+    // token — foi o que escondeu, por três semanas, o fato de a rota pública
+    // ignorar o Authorization e tratar todo mundo como anônimo (ADR 0012).
+    $this->withToken($curator->createToken('web')->plainTextToken)
+        ->getJson('/api/v1/modules/em-preparo-token')
+        ->assertOk()
+        ->assertJsonPath('data.slug', 'em-preparo-token');
+});
+
+it('inclui rascunho na listagem para a curadoria autenticada por token', function () {
+    foreach (Role::cases() as $role) {
+        SpatieRole::findOrCreate($role->value, 'web');
+    }
+
+    $curator = User::factory()->create();
+    $curator->assignRole(Role::Curator->value);
+
+    Module::factory()->create(['slug' => 'rascunho-na-listagem']);
+
+    $slugs = collect(
+        $this->withToken($curator->createToken('web')->plainTextToken)
+            ->getJson('/api/v1/modules')
+            ->json('data')
+    )->pluck('slug');
+
+    expect($slugs)->toContain('rascunho-na-listagem');
+});

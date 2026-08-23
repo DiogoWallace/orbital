@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\DisciplineController;
 use App\Http\Controllers\Api\V1\ModuleController;
+use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\SimulationRunController;
 use Illuminate\Support\Facades\Route;
@@ -62,20 +63,28 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/exchange', ExchangeTicketController::class);
     });
 
-    // --- Catálogo público -------------------------------------------------
-    // Sem autenticação: o catálogo é a vitrine da plataforma. As policies
-    // continuam filtrando o que não está publicado.
-    Route::get('disciplines', [DisciplineController::class, 'index']);
-    Route::get('disciplines/{discipline}', [DisciplineController::class, 'show']);
+    // --- Catálogo e blog públicos -----------------------------------------
+    // Sem autenticação: a vitrine precisa abrir para quem não tem conta. As
+    // policies continuam filtrando o que não está publicado.
+    //
+    // `auth.optional` não exige token, mas usa o que vier: é o que permite a
+    // um curador logado ver o próprio rascunho por estas mesmas rotas.
+    Route::middleware('auth.optional')->group(function (): void {
+        Route::get('disciplines', [DisciplineController::class, 'index']);
+        Route::get('disciplines/{discipline}', [DisciplineController::class, 'show']);
 
-    Route::get('modules', [ModuleController::class, 'index']);
-    Route::get('modules/{module}', [ModuleController::class, 'show']);
+        Route::get('modules', [ModuleController::class, 'index']);
+        Route::get('modules/{module}', [ModuleController::class, 'show']);
 
-    Route::get('projects', [ProjectController::class, 'index']);
-    Route::get('projects/{project}', [ProjectController::class, 'show']);
+        Route::get('projects', [ProjectController::class, 'index']);
+        Route::get('projects/{project}', [ProjectController::class, 'show']);
 
-    // Execução compartilhada por link — a policy decide se é pública.
-    Route::get('simulation-runs/{simulationRun}', [SimulationRunController::class, 'show']);
+        Route::get('posts', [PostController::class, 'index']);
+        Route::get('posts/{post}', [PostController::class, 'show']);
+
+        // Execução compartilhada por link — a policy decide se é pública.
+        Route::get('simulation-runs/{simulationRun}', [SimulationRunController::class, 'show']);
+    });
 
     // --- Área autenticada -------------------------------------------------
     Route::middleware('auth:sanctum')->group(function (): void {

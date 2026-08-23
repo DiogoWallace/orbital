@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\ResolveOptionalUser;
 use App\Support\Http\ProblemDetails;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // RFC 7807 com um `type` próprio, em vez de um 403 em inglês.
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
+
+            // Rota pública que ainda assim quer saber quem está do outro lado.
+            // Ver ResolveOptionalUser: sem isto o token no cabeçalho é
+            // ignorado fora do grupo `auth:sanctum`.
+            'auth.optional' => ResolveOptionalUser::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
