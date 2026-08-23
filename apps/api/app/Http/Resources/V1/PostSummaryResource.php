@@ -34,6 +34,24 @@ class PostSummaryResource extends JsonResource
             'coverSource' => $this->cover_source,
             'author' => new AuthorResource($this->whenLoaded('author')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
+
+            'likesCount' => $this->whenCounted('likes'),
+            'commentsCount' => $this->whenCounted('comments'),
+            // Se *este* leitor curtiu; ausente quando não há ninguém logado.
+            'liked' => $this->carregado('likes_exists'),
         ];
+    }
+
+    /**
+     * Lê um atributo agregado sem explodir quando ele não foi carregado.
+     *
+     * Cópia do mesmo auxiliar do {@see CommentResource}. Duas ocorrências não
+     * pagam uma abstração — na terceira, promove para um trait.
+     */
+    private function carregado(string $atributo): bool
+    {
+        $atributos = $this->resource->getAttributes();
+
+        return (bool) ($atributos[$atributo] ?? false);
     }
 }

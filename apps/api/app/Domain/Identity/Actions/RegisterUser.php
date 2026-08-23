@@ -7,6 +7,7 @@ namespace App\Domain\Identity\Actions;
 use App\Domain\Identity\Data\RegisterUserData;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Support\UsernameGenerator;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class RegisterUser
 {
+    public function __construct(private readonly UsernameGenerator $usernames) {}
+
     public function execute(RegisterUserData $data): User
     {
         $user = DB::transaction(function () use ($data): User {
@@ -25,6 +28,9 @@ final class RegisterUser
                 'name' => $data->name,
                 'email' => $data->email,
                 'password' => $data->password,
+                // Ninguém escolhe apelido no meio do cadastro: a conta nasce
+                // com um sugerido e a pessoa troca no perfil se quiser.
+                'username' => $this->usernames->paraNomeOuEmail($data->name, $data->email),
             ]);
 
             $user->assignRole(Role::Member->value);

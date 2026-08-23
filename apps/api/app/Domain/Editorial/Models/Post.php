@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Editorial\Models;
 
 use App\Domain\Catalog\Models\Tag;
+use App\Domain\Community\Models\Comment;
+use App\Domain\Community\Models\Like;
 use App\Domain\Editorial\Enums\PostStatus;
 use App\Domain\Identity\Models\User;
 use Database\Factories\PostFactory;
@@ -13,6 +15,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -65,6 +69,25 @@ class Post extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    /**
+     * O fio inteiro do post, raízes e respostas.
+     *
+     * A montagem em duas camadas é feita no controller, a partir desta lista:
+     * uma consulta só, e não uma por comentário para buscar as respostas.
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /** @return MorphMany<Like, $this> */
+    public function likes(): MorphMany
+    {
+        return $this->morphMany(Like::class, 'likeable');
     }
 
     /**

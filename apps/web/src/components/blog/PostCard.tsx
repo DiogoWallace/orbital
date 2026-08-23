@@ -35,6 +35,18 @@ export function PostCard({ post }: { post: PostSummary }) {
             </time>
             <span aria-hidden>·</span>
             <span>{post.readingMinutes} min de leitura</span>
+            {post.commentsCount ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{post.commentsCount} comentário{post.commentsCount === 1 ? "" : "s"}</span>
+              </>
+            ) : null}
+            {post.likesCount ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{post.likesCount} curtida{post.likesCount === 1 ? "" : "s"}</span>
+              </>
+            ) : null}
             {post.status !== "published" ? (
               <Badge className="ml-auto">Rascunho</Badge>
             ) : null}

@@ -5,8 +5,11 @@ import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { CommentThread } from "@/components/community/CommentThread";
+import { LikeButton } from "@/components/community/LikeButton";
 import { Badge } from "@/components/ui/Badge";
 import { getPost } from "@/lib/api/blog";
+import { getCurrentUser } from "@/lib/api/catalog";
 import { formatarDataLonga } from "@/lib/datas";
 
 interface Props {
@@ -34,7 +37,8 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function PostPage({ params }: Props) {
   const { slug } = await params;
-  const post = await getPost(slug);
+
+  const [post, viewer] = await Promise.all([getPost(slug), getCurrentUser()]);
 
   // A API já devolve 404 para rascunho alheio (a policy decide). Aqui só
   // traduzimos isso na página — nenhuma regra de visibilidade vive no
@@ -128,6 +132,22 @@ export default async function PostPage({ params }: Props) {
         </Markdown>
       </div>
 
+      <div className="mt-10 flex items-center gap-4 border-t border-[var(--color-line)] pt-6">
+        <LikeButton
+          endpoint={`/api/posts/${post.slug}/like`}
+          liked={post.liked ?? false}
+          count={post.likesCount ?? 0}
+          autenticado={viewer !== null && viewer.emailVerified}
+          rotulo="Curtir este post"
+        />
+        <a
+          href="#comentarios"
+          className="text-xs text-[var(--color-ink-faint)] hover:text-[var(--accent)]"
+        >
+          {post.commentsCount ?? 0} comentário{(post.commentsCount ?? 0) === 1 ? "" : "s"}
+        </a>
+      </div>
+
       {post.tags && post.tags.length > 0 ? (
         <footer className="mt-12 flex flex-wrap gap-1.5 border-t border-[var(--color-line)] pt-6">
           {post.tags.map((tag) => (
@@ -137,6 +157,8 @@ export default async function PostPage({ params }: Props) {
           ))}
         </footer>
       ) : null}
+
+      <CommentThread slug={post.slug} viewer={viewer} />
     </article>
   );
 }

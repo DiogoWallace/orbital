@@ -39,7 +39,19 @@ class PostController extends Controller
             throw new NotFoundHttpException;
         }
 
-        $post->load(['author', 'tags']);
+        $post->load(['author', 'tags'])
+            ->loadCount([
+                'likes',
+                // Só o que está visível conta: comentário oculto por moderação
+                // não pode inflar o número que a página exibe.
+                'comments' => fn ($query) => $query->visible(),
+            ]);
+
+        if ($viewer = $request->user()) {
+            $post->loadExists([
+                'likes' => fn ($query) => $query->where('user_id', $viewer->id),
+            ]);
+        }
 
         return new PostResource($post);
     }

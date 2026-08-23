@@ -44,10 +44,16 @@ export async function SiteHeader() {
           {user ? (
             <>
               <Link
-                href="/dashboard"
+                href={`/perfil/${user.username}`}
                 className="text-sm text-[var(--color-ink-muted)] transition-colors hover:text-[var(--color-ink)]"
               >
                 {user.name}
+              </Link>
+              <Link
+                href="/conta"
+                className="text-sm text-[var(--color-ink-faint)] transition-colors hover:text-[var(--color-ink)]"
+              >
+                Conta
               </Link>
               <form action="/api/auth/logout" method="post">
                 <button

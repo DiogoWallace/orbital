@@ -13,9 +13,14 @@ use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\ResendVerificationController;
 use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\V1\CommentController;
+use App\Http\Controllers\Api\V1\CommentReportController;
 use App\Http\Controllers\Api\V1\DisciplineController;
+use App\Http\Controllers\Api\V1\LikeController;
+use App\Http\Controllers\Api\V1\ModerateCommentController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PostController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\SimulationRunController;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +87,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('posts', [PostController::class, 'index']);
         Route::get('posts/{post}', [PostController::class, 'show']);
 
+        // O fio de comentários é público, como o post que o hospeda.
+        Route::get('posts/{post}/comments', [CommentController::class, 'index']);
+
+        // Perfil pelo `username` — o id não aparece em URL (ADR 0013).
+        Route::get('profiles/{user}', [ProfileController::class, 'show']);
+
         // Execução compartilhada por link — a policy decide se é pública.
         Route::get('simulation-runs/{simulationRun}', [SimulationRunController::class, 'show']);
     });
@@ -104,6 +115,33 @@ Route::prefix('v1')->group(function (): void {
         // cadastrou.
         Route::middleware('verified')->group(function (): void {
             Route::post('simulation-runs', [SimulationRunController::class, 'store']);
+
+            // --- Comunidade -----------------------------------------------
+            // Comentar e curtir são atos públicos ligados a um nome. Entram no
+            // mesmo grupo que exige e-mail confirmado (ADR 0010): sem isso,
+            // uma conta descartável comenta em nome de um endereço alheio.
+
+            // Balde estreito: dez comentários em dez minutos é conversa; mais
+            // que isso, numa plataforma deste tamanho, é despejo de spam.
+            Route::middleware('throttle:10,10')
+                ->post('posts/{post}/comments', [CommentController::class, 'store']);
+
+            Route::patch('comments/{comment}', [CommentController::class, 'update']);
+            Route::delete('comments/{comment}', [CommentController::class, 'destroy']);
+
+            // Curtir é barato e repetido: o limite existe para conter script,
+            // não pessoa.
+            Route::middleware('throttle:60,1')->group(function (): void {
+                Route::post('posts/{post}/like', [LikeController::class, 'post']);
+                Route::post('comments/{comment}/like', [LikeController::class, 'comment']);
+            });
+
+            Route::middleware('throttle:10,10')
+                ->post('comments/{comment}/report', CommentReportController::class);
+
+            Route::patch('comments/{comment}/moderation', ModerateCommentController::class);
+
+            Route::patch('me/profile', [ProfileController::class, 'update']);
         });
     });
 });

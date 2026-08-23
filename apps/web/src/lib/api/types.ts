@@ -118,6 +118,9 @@ export interface Project extends ProjectSummary {
 export interface User {
   id: number;
   name: string;
+  username: string;
+  bio: string | null;
+  avatarPath: string | null;
   email: string;
   roles: string[];
   isCurator: boolean;
@@ -153,12 +156,55 @@ export interface PostSummary {
   coverSource: string | null;
   author?: { id: number; name: string };
   tags?: Tag[];
+  likesCount?: number;
+  commentsCount?: number;
+  /** Se *este* leitor curtiu. Sempre falso para quem não está logado. */
+  liked?: boolean;
 }
 
 /** O post completo, com o corpo em Markdown. */
 export interface Post extends PostSummary {
   body: string;
   updatedAt: string | null;
+}
+
+/** Identidade pública de alguém. Nunca traz e-mail. */
+export interface PublicProfile {
+  username: string;
+  name: string;
+  bio: string | null;
+  avatarPath: string | null;
+  isCurator: boolean;
+  joinedAt: string | null;
+  commentsCount?: number;
+  comments?: CommentNode[];
+  authoredPosts?: PostSummary[];
+}
+
+/**
+ * Um comentário do fio.
+ *
+ * `replies` só vem preenchido nos comentários raiz: a conversa tem uma camada
+ * só, e uma resposta nunca tem respostas próprias.
+ */
+export interface CommentNode {
+  id: number;
+  parentId: number | null;
+  body: string;
+  status: "visible" | "hidden";
+  createdAt: string | null;
+  editedAt: string | null;
+  author?: PublicProfile;
+  likesCount?: number;
+  liked?: boolean;
+  /** O que *este* leitor pode fazer, decidido pela policy da API. */
+  viewerCan: {
+    edit: boolean;
+    delete: boolean;
+    report: boolean;
+    moderate: boolean;
+  };
+  replies?: CommentNode[];
 }
 
 /** Envelope de coleção paginada devolvido pela API. */

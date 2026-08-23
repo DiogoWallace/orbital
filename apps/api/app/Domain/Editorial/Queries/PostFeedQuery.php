@@ -31,6 +31,17 @@ final class PostFeedQuery
     {
         return QueryBuilder::for(Post::class)
             ->with(['author', 'tags'])
+            // Subconsultas de agregação, e não colunas denormalizadas: o
+            // contador em coluna é o tipo de dado que sai de sincronia quando
+            // um caminho de escrita esquece de incrementar.
+            ->withCount([
+                'likes',
+                // Comentário oculto por moderação não infla o número exibido.
+                'comments' => fn ($query) => $query->visible(),
+            ])
+            ->when($this->viewer, fn ($query) => $query->withExists([
+                'likes' => fn ($sub) => $sub->where('user_id', $this->viewer->id),
+            ]))
             ->when(
                 ! $this->viewer?->isCurator(),
                 fn ($query) => $query->published(),

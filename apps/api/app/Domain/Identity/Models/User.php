@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Identity\Models;
 
 use App\Domain\Catalog\Models\Module;
+use App\Domain\Community\Models\Comment;
+use App\Domain\Community\Models\Like;
+use App\Domain\Editorial\Models\Post;
 use App\Domain\Identity\Actions\SendEmailVerificationLink;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Notifications\ResetPasswordNotification;
@@ -21,7 +24,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'username', 'bio', 'avatar_path', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -62,6 +65,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    /** @return HasMany<Comment, $this> */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /** Curtidas dadas por este usuário — nunca expostas publicamente. */
+    public function likes(): HasMany
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    /**
+     * O endereço público do perfil.
+     *
+     * `username` e não `id`: o link continua valendo se a pessoa reescrever o
+     * nome de exibição, e o id deixa de aparecer em URL compartilhada.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'username';
+    }
+
+    /** @return HasMany<Post, $this> */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'author_id');
     }
 
     /** Módulos que este usuário assina como autor. */

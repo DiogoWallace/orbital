@@ -8,6 +8,7 @@ use App\Domain\Identity\Data\SocialProfileData;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\SocialAccount;
 use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Support\UsernameGenerator;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -26,6 +27,8 @@ use RuntimeException;
  */
 final class FindOrCreateSocialUser
 {
+    public function __construct(private readonly UsernameGenerator $usernames) {}
+
     public function execute(SocialProfileData $profile): User
     {
         $conta = SocialAccount::where('provider', $profile->provider)
@@ -75,6 +78,7 @@ final class FindOrCreateSocialUser
             $user = User::create([
                 'name' => $profile->name,
                 'email' => $profile->email,
+                'username' => $this->usernames->paraNomeOuEmail($profile->name, $profile->email),
                 // Sem senha: quem entra por provedor externo não escolhe uma.
                 // Se quiser senha depois, o caminho é a recuperação — que
                 // funciona porque o endereço já está confirmado.

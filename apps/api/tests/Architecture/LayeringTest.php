@@ -29,7 +29,11 @@ arch('controllers não escrevem no banco diretamente')
     ->not->toUse('Illuminate\Support\Facades\DB');
 
 arch('actions expõem um único ponto de entrada')
-    ->expect(['App\Domain\Identity\Actions', 'App\Domain\Simulation\Actions'])
+    ->expect([
+        'App\Domain\Identity\Actions',
+        'App\Domain\Simulation\Actions',
+        'App\Domain\Community\Actions',
+    ])
     ->toHaveMethod('execute');
 
 arch('a taxonomia é modelada com enums, não com strings soltas')
@@ -38,6 +42,7 @@ arch('a taxonomia é modelada com enums, não com strings soltas')
         'App\Domain\Projects\Enums',
         'App\Domain\Identity\Enums',
         'App\Domain\Editorial\Enums',
+        'App\Domain\Community\Enums',
     ])
     ->toBeEnums();
 

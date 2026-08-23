@@ -30,6 +30,10 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            // `unique()->userName()` do Faker ainda colide em suíte grande, e
+            // a coluna é única no banco: o sufixo numérico garante que nenhum
+            // teste quebre por azar de sorteio.
+            'username' => Str::lower(Str::slug(fake()->unique()->userName(), '')).fake()->unique()->numberBetween(1, 999999),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
