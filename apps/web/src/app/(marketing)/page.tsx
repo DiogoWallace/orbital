@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { PostCard } from "@/components/blog/PostCard";
 import { ModuleCard } from "@/components/catalog/ModuleCard";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { WebbCard } from "@/components/marketing/WebbCard";
 import { WebbHero } from "@/components/marketing/WebbHero";
+import { getPosts } from "@/lib/api/blog";
 import { getDisciplines, getModules } from "@/lib/api/catalog";
 import { accentVariable } from "@/lib/utils";
 import { galeriaWebb } from "@/lib/webb";
@@ -16,9 +18,12 @@ import { galeriaWebb } from "@/lib/webb";
  * argumento.
  */
 export default async function LandingPage() {
-  const [{ data: disciplines }, modules] = await Promise.all([
+  // Em paralelo: três leituras independentes, e encadeá-las somaria três
+  // idas ao banco no tempo da mais lenta vezes três.
+  const [{ data: disciplines }, modules, posts] = await Promise.all([
     getDisciplines(),
     getModules({ perPage: 3 }),
+    getPosts({ perPage: 3 }),
   ]);
 
   return (
@@ -160,6 +165,31 @@ export default async function LandingPage() {
               {modules.data.map((module) => (
                 <ModuleCard key={module.id} module={module} />
               ))}
+            </div>
+          </section>
+        ) : null}
+
+        {/* --- Do blog ----------------------------------------------------- */}
+        {posts.data.length > 0 ? (
+          <section className="border-t border-[var(--color-line)]">
+            <div className="mx-auto max-w-7xl px-6 py-20">
+              <div className="flex items-baseline justify-between">
+                <h2 className="text-sm tracking-wide text-[var(--color-ink-faint)] uppercase">
+                  Do blog
+                </h2>
+                <Link
+                  href="/blog"
+                  className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+                >
+                  Ver todos
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {posts.data.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
             </div>
           </section>
         ) : null}

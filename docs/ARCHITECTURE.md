@@ -46,6 +46,7 @@ Portas de desenvolvimento: **web 3100**, **api 8100**, **postgres 5433**,
 app/
 ├── Domain/                  núcleo de negócio, quase sem framework
 │   ├── Catalog/             disciplinas, tópicos, módulos, tags
+│   ├── Editorial/           posts do blog
 │   ├── Projects/            projetos, pesquisas, descobertas
 │   ├── Simulation/          contratos: SimulationEngine, RunResult
 │   ├── Datasets/            fontes externas, ingestão, séries
@@ -75,7 +76,7 @@ Essas fronteiras são verificadas por testes de arquitetura no CI — ver
 src/
 ├── app/
 │   ├── (marketing)/      landing
-│   ├── (platform)/       dashboard, explorar, disciplinas, modulos, projetos
+│   ├── (platform)/       dashboard, explorar, disciplinas, modulos, projetos, blog
 │   ├── (auth)/           login, registro
 │   └── api/              BFF: proxy de auth, cookie httpOnly
 ├── components/
@@ -187,3 +188,4 @@ perigosos.
 | [0009](adr/0009-email-transacional.md) | E-mail transacional: link para o frontend, envio em fila |
 | [0010](adr/0010-verificacao-de-email-porta-suave.md) | Verificação de e-mail com porta suave |
 | [0011](adr/0011-login-com-google.md) | Login com o Google: OAuth na API, ticket para o BFF |
+| [0012](adr/0012-blog-como-dominio-proprio.md) | Blog como domínio próprio, e autenticação opcional nas rotas públicas |

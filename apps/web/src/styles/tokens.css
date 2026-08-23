@@ -68,6 +68,130 @@
   background-size: 32px 32px;
 }
 
+/* Corpo de texto longo — post do blog, e o que mais vier a ser lido de ponta
+   a ponta. Escrito como classe, e não como utilitários soltos no JSX, porque
+   o conteúdo vem de Markdown: não há onde pendurar `className` em um <h2> que
+   o renderizador cria sozinho.
+
+   A medida de linha fica em ~68 caracteres pelo `max-w-2xl` do contêiner.
+   Acima disso o olho perde a linha ao voltar para a esquerda. */
+.prose-orbital {
+  color: var(--color-ink-muted);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.prose-orbital > * + * {
+  margin-top: 1.25rem;
+}
+
+.prose-orbital h2 {
+  margin-top: 2.5rem;
+  color: var(--color-ink);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.prose-orbital h3 {
+  margin-top: 2rem;
+  color: var(--color-ink);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.prose-orbital strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.prose-orbital a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-orbital ul,
+.prose-orbital ol {
+  padding-left: 1.25rem;
+}
+
+.prose-orbital ul {
+  list-style: disc;
+}
+
+.prose-orbital ol {
+  list-style: decimal;
+}
+
+.prose-orbital li + li {
+  margin-top: 0.5rem;
+}
+
+.prose-orbital li::marker {
+  color: var(--color-ink-faint);
+}
+
+.prose-orbital code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: var(--color-ink);
+}
+
+.prose-orbital pre {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  padding: 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* Bloco de citação como nota de instrumento: uma barra de acento à esquerda,
+   sem aspas decorativas. */
+.prose-orbital blockquote {
+  border-left: 2px solid var(--accent);
+  padding-left: 1rem;
+  color: var(--color-ink);
+}
+
+.prose-orbital hr {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  margin-block: 2.5rem;
+}
+
+/* Fórmula em bloco pode estourar a largura no celular; rolar é melhor que
+   cortar, e melhor que encolher a ponto de não se ler. */
+.prose-orbital .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.5rem;
+}
+
+.prose-orbital table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.prose-orbital th,
+.prose-orbital td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  text-align: left;
+}
+
+.prose-orbital th {
+  color: var(--color-ink-faint);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

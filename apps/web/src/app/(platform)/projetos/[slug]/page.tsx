@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ModuleCard } from "@/components/catalog/ModuleCard";
 import { Badge } from "@/components/ui/Badge";
 import { getProject } from "@/lib/api/catalog";
+import { formatarData } from "@/lib/datas";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export default async function ProjetoPage({ params }: PageProps) {
           <Badge>{project.statusLabel}</Badge>
           {project.startedAt ? (
             <span className="tabular text-xs text-[var(--color-ink-faint)]">
-              início {new Date(project.startedAt).toLocaleDateString("pt-BR")}
+              início {formatarData(project.startedAt)}
             </span>
           ) : null}
         </div>

@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Domain\Catalog\Models\Module;
 use App\Domain\Catalog\Policies\ModulePolicy;
+use App\Domain\Editorial\Models\Post;
+use App\Domain\Editorial\Policies\PostPolicy;
 use App\Domain\Simulation\Models\SimulationRun;
 use App\Domain\Simulation\Policies\SimulationRunPolicy;
 use App\Domain\Simulation\SimulationEngineRegistry;
@@ -30,6 +32,7 @@ class DomainServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Module::class, ModulePolicy::class);
+        Gate::policy(Post::class, PostPolicy::class);
         Gate::policy(SimulationRun::class, SimulationRunPolicy::class);
 
         // Motores de simulação server-side se registram aqui, vindos de

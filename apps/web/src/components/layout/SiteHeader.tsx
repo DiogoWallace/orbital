@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/api/catalog";
 const navigation = [
   { href: "/explorar", label: "Explorar" },
   { href: "/projetos", label: "Projetos" },
+  { href: "/blog", label: "Blog" },
 ];
 
 /**

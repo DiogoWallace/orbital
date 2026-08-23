@@ -33,7 +33,12 @@ arch('actions expõem um único ponto de entrada')
     ->toHaveMethod('execute');
 
 arch('a taxonomia é modelada com enums, não com strings soltas')
-    ->expect(['App\Domain\Catalog\Enums', 'App\Domain\Projects\Enums', 'App\Domain\Identity\Enums'])
+    ->expect([
+        'App\Domain\Catalog\Enums',
+        'App\Domain\Projects\Enums',
+        'App\Domain\Identity\Enums',
+        'App\Domain\Editorial\Enums',
+    ])
     ->toBeEnums();
 
 arch('nada de depurador esquecido')

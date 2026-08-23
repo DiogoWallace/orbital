@@ -137,6 +137,30 @@ export interface SimulationRun {
   module?: ModuleSummary;
 }
 
+/** Um texto do blog, no recorte da listagem. */
+export interface PostSummary {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  status: string;
+  publishedAt: string | null;
+  /** Calculado na API a partir do corpo — não é coluna no banco. */
+  readingMinutes: number;
+  coverPath: string | null;
+  /** Obrigatório sempre que houver capa: a licença da imagem exige. */
+  coverCredit: string | null;
+  coverSource: string | null;
+  author?: { id: number; name: string };
+  tags?: Tag[];
+}
+
+/** O post completo, com o corpo em Markdown. */
+export interface Post extends PostSummary {
+  body: string;
+  updatedAt: string | null;
+}
+
 /** Envelope de coleção paginada devolvido pela API. */
 export interface Paginated<T> {
   data: T[];
