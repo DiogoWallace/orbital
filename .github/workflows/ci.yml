@@ -87,6 +87,9 @@ jobs:
       - run: npm ci
         working-directory: apps/web
 
+      # O script roda `next typegen` antes do tsc. `next-env.d.ts` e
+      # `.next/types` são gerados pelo Next e não versionados; sem eles o
+      # TypeScript não conhece os imports de imagem nem os tipos de rota.
       - name: Tipos
         working-directory: apps/web
         run: npm run typecheck
