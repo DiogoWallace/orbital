@@ -1,0 +1,454 @@
+/*
+ * Classes de componente do Nocturne.
+ *
+ * CSS puro sobre HTML puro: sem JavaScript, sem variante em prop. Cada classe
+ * aqui é a mesma que o design system publica, e é por isso que ela existe em
+ * vez de virar um componente React com quinze props — a tela desenhada e a
+ * tela implementada compartilham o seletor, então divergir passa a exigir
+ * esforço.
+ *
+ * Os componentes de `components/ui/` são invólucros finos por cima destas
+ * classes: eles trazem tipagem, `aria-*` e composição, não aparência.
+ *
+ * Tudo entra em `@layer components` para que qualquer utilitário do Tailwind
+ * escrito no JSX ganhe da classe — `className="btn btn-primary px-6"` faz o
+ * que se espera.
+ */
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+  }
+
+  h1 { font-size: 42px; }
+  h2 { font-size: 32px; }
+  h3 { font-size: 25px; }
+  h4 { font-size: 20px; }
+  h5 { font-size: 16px; }
+
+  /* O h6 não é um título pequeno: é o kicker do sistema — o rótulo em
+     versalete que abre uma seção. Vem com caixa alta e tracking próprios
+     porque em toda tela ele aparece assim. */
+  h6 {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  figcaption {
+    font-size: 11px;
+    color: var(--color-neutral-500);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  /* Foco visível e consistente: hotspots de diagrama são navegáveis por
+     teclado, e um anel discreto é o que torna isso utilizável. */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Leitura de número em instrumento: largura fixa por dígito. Duas grafias
+     porque as telas portadas do design usam `.num` e o código antigo usa
+     `.tabular`; são a mesma coisa. */
+  .num,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tabular {
+    font-family: var(--font-mono);
+  }
+
+  /* Foto do Webb sobre fundo escuro: `lighten` faz o preto do céu virar o
+     fundo da página em vez de um retângulo mais claro dentro dela. A borda da
+     imagem some, e sobra a nebulosa. */
+  .lighten {
+    mix-blend-mode: lighten;
+    background-color: transparent;
+  }
+}
+
+@layer components {
+  /* --- réguas ----------------------------------------------------------- */
+  /* A régua do Nocturne desaparece nas pontas em vez de terminar em ângulo
+     reto: 48px de fade de cada lado, sempre pintados com o token de divisor.
+     Contornos de caixa e separadores internos de controle continuam sólidos —
+     só a régua solta é que se dissolve. Como é `background`, e não `border`,
+     ela pode ser aplicada a qualquer elemento pela posição (`top`/`bottom`). */
+  .hr {
+    height: 1px;
+    border: 0;
+    margin: var(--space-4) 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-divider) 48px,
+      var(--color-divider) calc(100% - 48px),
+      transparent
+    );
+  }
+
+  .rule-bottom {
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-divider) 48px,
+        var(--color-divider) calc(100% - 48px),
+        transparent
+      )
+      no-repeat bottom / 100% 1px;
+  }
+
+  .rule-top {
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-divider) 48px,
+        var(--color-divider) calc(100% - 48px),
+        transparent
+      )
+      no-repeat top / 100% 1px;
+  }
+
+  /* Linha de lista que acende ao passar o mouse sem perder a régua de baixo:
+     as duas camadas de background convivem, a tinta por cima do fio. */
+  .row-link {
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-divider) 48px,
+        var(--color-divider) calc(100% - 48px),
+        transparent
+      )
+      no-repeat bottom / 100% 1px;
+  }
+
+  .row-link:hover {
+    background:
+      linear-gradient(
+          color-mix(in srgb, var(--color-text) 4%, transparent),
+          color-mix(in srgb, var(--color-text) 4%, transparent)
+        )
+        no-repeat 0 0 / 100% 100%,
+      linear-gradient(
+          to right,
+          transparent,
+          var(--color-divider) 48px,
+          var(--color-divider) calc(100% - 48px),
+          transparent
+        )
+        no-repeat bottom / 100% 1px;
+  }
+
+  /* --- botões ----------------------------------------------------------- */
+  /* Nenhuma variante é preenchida. Num fundo desta profundidade um botão
+     sólido vira a coisa mais clara da tela e rouba a atenção do conteúdo; o
+     contorno de acento chama o suficiente e deixa a imagem respirar. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    /* 14px combina com o `.input`: os dois ficam lado a lado nas linhas de
+       cadastro, e um degrau de tamanho ali salta aos olhos. */
+    font-size: 14px;
+    line-height: 1.2;
+    color: var(--color-text);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: var(--space-2) 10px;
+    border-radius: var(--radius-md);
+    transition:
+      background-color 150ms var(--ease-out-instrument),
+      border-color 150ms var(--ease-out-instrument),
+      color 150ms var(--ease-out-instrument);
+  }
+
+  .btn svg {
+    display: block;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .btn-primary:active {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  .btn-secondary {
+    border-color: var(--color-divider);
+  }
+
+  .btn-secondary:hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+
+  .btn-secondary:active {
+    background: color-mix(in srgb, var(--color-text) 14%, transparent);
+  }
+
+  .btn-ghost {
+    color: var(--accent);
+    padding-inline: var(--space-1);
+  }
+
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .btn-ghost:active {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+
+  .btn-block {
+    width: 100%;
+  }
+
+  /* --- formulários ------------------------------------------------------ */
+  .field > label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 5px;
+    color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  }
+
+  .input {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-text);
+    caret-color: var(--accent);
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+  }
+
+  .input::placeholder {
+    color: var(--color-neutral-600);
+  }
+
+  .input:hover {
+    border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+  }
+
+  .input:focus-visible {
+    border-color: var(--accent);
+    outline-offset: 0;
+  }
+
+  .input[aria-invalid="true"] {
+    border-color: var(--color-signal-danger);
+  }
+
+  textarea.input {
+    min-height: 90px;
+    resize: vertical;
+  }
+
+  /* Segmento: o controle de filtro do feed e o alternador entrar/criar conta.
+     O rádio real fica escondido e continua sendo o que o teclado e o leitor de
+     tela operam — o retângulo é só a pintura em cima dele. */
+  .seg {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+  }
+
+  .seg-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .seg-opt input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .seg-opt + .seg-opt {
+    border-left: 1px solid var(--color-divider);
+  }
+
+  .seg-opt:has(input:checked),
+  .seg-opt[aria-current="true"] {
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .seg-opt:not(:has(input:checked)):not([aria-current="true"]):hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+
+  .seg-opt:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* --- cartões ---------------------------------------------------------- */
+  /* O contorno do cartão é `box-shadow`, e não `border`: assim ele não entra
+     no cálculo de tamanho da caixa, e um cartão dentro de uma grade não fica
+     dois pixels menor que o vizinho sem contorno. */
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .card-kicker {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .card-title {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.2;
+  }
+
+  .card-body {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.8;
+    flex: 1;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--color-neutral-500);
+  }
+
+  .elev-sm { box-shadow: var(--shadow-sm); }
+  .elev-md { box-shadow: var(--shadow-md); }
+  .elev-lg { box-shadow: var(--shadow-lg); }
+
+  /* --- etiquetas -------------------------------------------------------- */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+    border-radius: calc(var(--radius-md) * 0.75);
+    white-space: nowrap;
+  }
+
+  .tag-accent {
+    background: var(--color-accent-800);
+    color: var(--color-accent-100);
+  }
+
+  .tag-accent-2 {
+    background: var(--color-accent-2-800);
+    color: var(--color-accent-2-100);
+  }
+
+  .tag-neutral {
+    background: var(--color-neutral-800);
+    color: var(--color-neutral-100);
+  }
+
+  .tag-outline {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  /* --- tabelas ---------------------------------------------------------- */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .table th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-neutral-500);
+    padding: var(--space-2);
+  }
+
+  .table td {
+    padding: var(--space-2);
+  }
+
+  /* A régua da linha é pintada na `<tr>`, e não na célula: só assim o fade das
+     pontas atravessa a linha inteira em vez de reiniciar a cada coluna. */
+  .table thead tr {
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-divider) 48px,
+        var(--color-divider) calc(100% - 48px),
+        transparent
+      )
+      no-repeat bottom / 100% 1px;
+  }
+
+  .table tbody tr {
+    background: linear-gradient(
+        to right,
+        transparent,
+        color-mix(in srgb, var(--color-text) 8%, transparent) 48px,
+        color-mix(in srgb, var(--color-text) 8%, transparent) calc(100% - 48px),
+        transparent
+      )
+      no-repeat bottom / 100% 1px;
+  }
+}

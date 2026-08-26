@@ -15,11 +15,8 @@
  */
 export function GoogleButton() {
   return (
-    <a
-      href="/api/auth/google/start"
-      className="inline-flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-control)] border border-[var(--color-line-strong)] px-3.5 py-2 text-sm text-[var(--color-ink)] transition-colors duration-150 ease-[var(--ease-out-instrument)] hover:border-[var(--accent)]"
-    >
-      <svg aria-hidden viewBox="0 0 18 18" className="size-4">
+    <a href="/api/auth/google/start" className="btn btn-secondary btn-block py-2.5">
+      <svg aria-hidden viewBox="0 0 18 18" width="16" height="16">
         <path
           fill="#4285F4"
           d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
@@ -37,7 +34,7 @@ export function GoogleButton() {
           d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.96l3.02 2.32C4.68 5.16 6.66 3.58 9 3.58Z"
         />
       </svg>
-      Entrar com o Google
+      Continuar com o Google
     </a>
   );
 }

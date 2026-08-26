@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -62,13 +63,14 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
       {mode === "register" ? (
         <Field
           label="Nome"
           name="name"
           type="text"
           autoComplete="name"
+          placeholder="Como você assina o que publica"
           errors={fieldErrors.name}
           required
         />
@@ -79,6 +81,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         name="email"
         type="email"
         autoComplete="email"
+        placeholder="voce@instituicao.br"
         errors={fieldErrors.email}
         required
       />
@@ -88,10 +91,23 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         name="password"
         type="password"
         autoComplete={mode === "login" ? "current-password" : "new-password"}
+        placeholder="••••••••••••"
         errors={fieldErrors.password}
         // A regra aparece antes da tentativa: descobrir a política pelo erro
         // é o caminho mais curto para a pessoa desistir do cadastro.
         hint={mode === "register" ? "Pelo menos 12 caracteres, com letras e números." : undefined}
+        // O "esqueci" mora na linha do rótulo, e não abaixo do botão: é ali que
+        // a pessoa está olhando no instante em que percebe que não lembra.
+        action={
+          mode === "login" ? (
+            <Link
+              href="/esqueci-senha"
+              className="text-xs text-[var(--color-neutral-400)] hover:text-[var(--color-accent)]"
+            >
+              Esqueci
+            </Link>
+          ) : undefined
+        }
         required
       />
 
@@ -101,6 +117,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
           name="password_confirmation"
           type="password"
           autoComplete="new-password"
+          placeholder="••••••••••••"
           required
         />
       ) : null}
@@ -111,7 +128,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         </p>
       ) : null}
 
-      <Button type="submit" variant="primary" disabled={pending} className="mt-2">
+      <Button type="submit" variant="primary" block disabled={pending} className="mt-1 py-2.5">
         {pending ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
       </Button>
     </form>

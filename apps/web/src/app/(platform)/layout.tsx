@@ -10,6 +10,10 @@ import { getCurrentUser } from "@/lib/api/catalog";
  * Separada da casca de marketing porque as duas têm objetivos diferentes — uma
  * apresenta, a outra opera. Route groups permitem essa distinção sem inventar
  * um segmento de URL só para agradar a estrutura de pastas.
+ *
+ * A medida de 1240px é a do design system, e não o `max-w-7xl` do Tailwind: as
+ * telas foram desenhadas nessa grade, e 1280px daria um respiro a mais de cada
+ * lado que desalinha o conteúdo do cabeçalho.
  */
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -18,7 +22,9 @@ export default async function PlatformLayout({ children }: { children: ReactNode
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
       {user && !user.emailVerified ? <UnverifiedEmailBanner email={user.email} /> : null}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-[1240px] flex-1 px-7 pt-11 pb-24">
+        {children}
+      </main>
       <SiteFooter />
     </div>
   );

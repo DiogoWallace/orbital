@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
-import { Panel } from "@/components/ui/Panel";
 import { getProjects } from "@/lib/api/catalog";
 
 export const metadata = { title: "Projetos" };
@@ -17,43 +16,43 @@ export default async function ProjetosPage() {
   return (
     <div>
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--color-ink-muted)]">
+        <h6 className="text-[var(--color-neutral-500)]">Sequências de módulos</h6>
+        <h1 className="mt-3 text-[40px] tracking-[-0.025em]">Projetos</h1>
+        <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[var(--color-neutral-300)]">
           Sequências de módulos que investigam uma pergunta do começo ao fim.
         </p>
       </header>
 
       {projects.data.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-[var(--color-ink-faint)]">
+        <p className="mt-16 text-center text-sm text-[var(--color-neutral-500)]">
           Nenhum projeto publicado ainda.
         </p>
       ) : (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {projects.data.map((project) => (
-            <Panel key={project.id} as="article" className="p-6">
+            <Link
+              key={project.id}
+              href={`/projetos/${project.slug}`}
+              className="card elev-sm group gap-0 p-6"
+            >
               <div className="flex items-center gap-2">
                 <Badge tone="accent">{project.kindLabel}</Badge>
-                <span className="text-xs text-[var(--color-ink-faint)]">
+                <span className="num text-xs text-[var(--color-neutral-500)]">
                   {project.modulesCount ?? 0}{" "}
                   {project.modulesCount === 1 ? "módulo" : "módulos"}
                 </span>
               </div>
 
-              <h2 className="mt-3 text-lg font-medium">
-                <Link
-                  href={`/projetos/${project.slug}`}
-                  className="transition-colors hover:text-[var(--accent)]"
-                >
-                  {project.title}
-                </Link>
+              <h2 className="mt-3 text-[20px] transition-colors group-hover:text-[var(--color-accent)]">
+                {project.title}
               </h2>
 
               {project.summary ? (
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-muted)]">
+                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--color-neutral-400)]">
                   {project.summary}
                 </p>
               ) : null}
-            </Panel>
+            </Link>
           ))}
         </div>
       )}

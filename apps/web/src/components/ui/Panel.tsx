@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
  * Um só componente para painel, cartão e módulo de dados: a plataforma inteira
  * usa a mesma linguagem de superfície, e é isso que faz um catálogo de dezenas
  * de módulos parecer um instrumento só.
+ *
+ * O contorno vem de `box-shadow` (`.elev-sm`), não de `border`: assim ele não
+ * entra no cálculo da caixa, e um painel numa grade nunca fica dois pixels
+ * menor que o vizinho sem contorno.
  */
 export function Panel({
   children,
@@ -20,8 +24,7 @@ export function Panel({
   return (
     <Tag
       className={cn(
-        "rounded-[var(--radius-panel)] border border-[var(--color-line)]",
-        "bg-[var(--color-surface)]",
+        "rounded-[var(--radius-lg)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]",
         className,
       )}
     >
@@ -40,11 +43,11 @@ export function PanelHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] px-5 py-4">
+    <div className="rule-bottom flex items-start justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
-        <h2 className="text-sm font-medium tracking-wide text-[var(--color-ink)]">{title}</h2>
+        <h6 className="text-[var(--color-neutral-500)]">{title}</h6>
         {description ? (
-          <p className="mt-1 text-xs text-[var(--color-ink-faint)]">{description}</p>
+          <p className="mt-1.5 text-xs text-[var(--color-neutral-500)]">{description}</p>
         ) : null}
       </div>
       {action}

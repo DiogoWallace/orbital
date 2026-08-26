@@ -1,35 +1,43 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "ghost" | "outline";
+/**
+ * Botão.
+ *
+ * A aparência inteira vem das classes `.btn*` do Nocturne — este componente só
+ * traduz a variante em nome de classe e repassa o resto. Foi de propósito:
+ * enquanto o botão desenhado e o botão implementado compartilharem o mesmo
+ * seletor, um redesign do sistema chega aqui sem passar por um arquivo `.tsx`.
+ *
+ * Nenhuma variante é preenchida. Sobre um fundo desta profundidade um botão
+ * sólido vira a superfície mais clara da tela e rouba a atenção do conteúdo —
+ * o contorno de acento chama o suficiente.
+ */
+type Variant = "primary" | "secondary" | "ghost" | "outline";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-[var(--accent)] text-[var(--color-void)] hover:brightness-110 font-medium",
-  outline:
-    "border border-[var(--color-line-strong)] text-[var(--color-ink)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
-  ghost: "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]",
+  primary: "btn-primary",
+  secondary: "btn-secondary",
+  // `outline` é o nome antigo do secundário. Mantido como apelido para não
+  // reescrever as chamadas espalhadas pelas telas que ainda não foram tocadas.
+  outline: "btn-secondary",
+  ghost: "btn-ghost",
 };
 
 export function Button({
   children,
-  variant = "outline",
+  variant = "secondary",
+  block = false,
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   variant?: Variant;
+  block?: boolean;
 }) {
   return (
     <button
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)]",
-        "px-3.5 py-2 text-sm transition-[color,background-color,border-color,filter]",
-        "duration-150 ease-[var(--ease-out-instrument)]",
-        "disabled:cursor-not-allowed disabled:opacity-40",
-        variants[variant],
-        className,
-      )}
+      className={cn("btn", variants[variant], block && "btn-block", className)}
       {...props}
     >
       {children}

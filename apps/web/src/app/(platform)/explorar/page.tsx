@@ -3,7 +3,7 @@ import { ModuleCard } from "@/components/catalog/ModuleCard";
 import { getDisciplines, getModules } from "@/lib/api/catalog";
 import { accentVariable } from "@/lib/utils";
 
-export const metadata = { title: "Explorar" };
+export const metadata = { title: "Laboratório" };
 
 /**
  * Catálogo com filtros.
@@ -28,14 +28,24 @@ export default async function ExplorarPage({
   return (
     <div>
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Explorar</h1>
-        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
-          {modules.meta.total} {modules.meta.total === 1 ? "módulo" : "módulos"} no
-          catálogo.
+        <h6 className="text-[var(--color-neutral-500)]">Catálogo de experimentos</h6>
+        <h1 className="mt-3 text-[40px] tracking-[-0.025em]">Laboratório</h1>
+        <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[var(--color-neutral-300)]">
+          {modules.meta.total} {modules.meta.total === 1 ? "módulo" : "módulos"} para
+          abrir e mexer. A simulação roda no seu navegador — nada aqui exige conta.
         </p>
       </header>
 
-      <nav className="mt-6 flex flex-wrap gap-2" aria-label="Filtrar por área">
+      {busca ? (
+        <p className="mt-6 text-xs text-[var(--color-neutral-500)]">
+          Buscando por <span className="text-[var(--color-text)]">{busca}</span> ·{" "}
+          <Link href="/explorar" className="text-[var(--color-accent)] hover:underline">
+            limpar
+          </Link>
+        </p>
+      ) : null}
+
+      <nav className="mt-6 flex flex-wrap gap-1.5" aria-label="Filtrar por área">
         <FilterChip href="/explorar" active={!disciplina} label="Tudo" />
         {disciplines.map((discipline) => (
           <FilterChip
@@ -49,7 +59,7 @@ export default async function ExplorarPage({
       </nav>
 
       {modules.data.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-[var(--color-ink-faint)]">
+        <p className="mt-16 text-center text-sm text-[var(--color-neutral-500)]">
           Nenhum módulo corresponde a esse recorte.
         </p>
       ) : (
@@ -63,6 +73,13 @@ export default async function ExplorarPage({
   );
 }
 
+/**
+ * Chip de filtro.
+ *
+ * O ativo é contornado com o acento da própria área e os inativos ficam
+ * preenchidos em neutro: assim o recorte em vigor é a única coisa colorida da
+ * fila, e a cor já diz qual área é.
+ */
 function FilterChip({
   href,
   label,
@@ -79,11 +96,7 @@ function FilterChip({
       href={href}
       aria-current={active ? "page" : undefined}
       style={accent ? { ["--accent" as string]: accentVariable(accent) } : undefined}
-      className={
-        active
-          ? "rounded-full border border-[var(--accent)] px-3.5 py-1.5 text-xs text-[var(--accent)]"
-          : "rounded-full border border-[var(--color-line-strong)] px-3.5 py-1.5 text-xs text-[var(--color-ink-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-      }
+      className={active ? "tag tag-outline" : "tag tag-neutral"}
     >
       {label}
     </Link>

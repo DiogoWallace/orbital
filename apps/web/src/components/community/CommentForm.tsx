@@ -65,41 +65,36 @@ export function CommentForm({
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-2">
+    <form onSubmit={enviar} className="flex flex-col gap-2.5">
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value)}
         rows={3}
         maxLength={2000}
         autoFocus={autoFocus}
-        placeholder="Escreva um comentário…"
-        className="w-full resize-y rounded-[var(--radius-control)] border border-[var(--color-line-strong)] bg-[var(--color-void)] px-3 py-2 text-sm leading-relaxed text-[var(--color-ink)] outline-none focus:border-[var(--accent)]"
+        placeholder="Comente com o que você observou — quem cita um cenário salvo pode anexá-lo."
+        className="input min-h-[74px]"
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <Button
           type="submit"
           variant="primary"
           disabled={enviando || body.trim().length < 2}
-          className="text-xs"
         >
           {enviando ? "Enviando…" : rotulo}
         </Button>
 
         {onCancelar ? (
-          <button
-            type="button"
-            onClick={onCancelar}
-            className="text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]"
-          >
+          <Button type="button" variant="ghost" onClick={onCancelar}>
             Cancelar
-          </button>
+          </Button>
         ) : null}
 
         {/* O contador só aparece perto do limite: mostrar "1994 restantes"
             desde o primeiro caractere é ruído. */}
         {restantes < 200 ? (
-          <span className="tabular ml-auto text-[11px] text-[var(--color-ink-faint)]">
+          <span className="num ml-auto text-[11px] text-[var(--color-neutral-500)]">
             {restantes}
           </span>
         ) : null}

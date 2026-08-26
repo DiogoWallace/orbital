@@ -1,30 +1,139 @@
 /*
- * Tokens de design do Orbital.
+ * Tokens de design do Orbital — sistema Nocturne.
  *
- * A metáfora é instrumento de laboratório: fundo profundo e neutro, tinta de
- * dado com alto contraste, um acento por disciplina e nada de brilho decorativo.
- * A interface é o instrumento; o dado é o protagonista.
+ * A metáfora continua a mesma: instrumento de laboratório. O que mudou foi a
+ * paleta. O fundo saiu do azul-tinta quase preto para um índigo profundo
+ * (#161826), e o acento — que antes era um ciano de instrumento — passou a ser
+ * o blurple da marca. A troca resolve um problema concreto: o ciano competia
+ * com o dado nas visualizações, porque é a mesma faixa de cor que linhas de
+ * gráfico e canvas usam. O blurple não aparece em nenhuma leitura científica,
+ * então quando ele acende é sempre interface, nunca dado.
  *
- * Tema escuro é o padrão porque a maior parte da tela é visualização — gráfico,
+ * As rampas neutras e de acento foram geradas em OKLCH sobre uma única escala
+ * de luminância: o passo 400 de qualquer papel tem o mesmo peso visual que o
+ * 400 dos outros. Trocar `--color-accent-400` por `--color-neutral-400` num
+ * componente muda a cor e não muda o contraste.
+ *
+ * Estes tokens vivem em `:root` como CSS puro, e não dentro de `@theme`, de
+ * propósito: `--color-neutral-400` num bloco `@theme` sobrescreveria a escala
+ * `neutral` do próprio Tailwind, e o dia em que alguém escrever
+ * `text-neutral-400` esperando o padrão seria um dia perdido. Aqui só se chega
+ * por `var()`.
+ *
+ * Tema escuro é o único tema. A maior parte da tela é visualização — gráfico,
  * canvas, diagrama — e fundo claro rouba contraste de linhas finas.
  */
 
 @theme {
+  /* --- Tipografia ------------------------------------------------------- */
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Números tabulares e largura fixa: leitura de instrumento não pode dançar
+     enquanto o valor muda a 60 fps. */
+  --font-mono: var(--font-mono-stack), ui-monospace, "SF Mono", monospace;
+
+  /* Transições curtas e físicas. Nada acima de 240ms: acima disso a interface
+     parece lenta, não elegante. */
+  --ease-out-instrument: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: dark;
+
   /* --- Superfícies ------------------------------------------------------ */
-  --color-void: oklch(0.16 0.015 255);        /* fundo da página */
-  --color-surface: oklch(0.21 0.018 255);     /* cartões e painéis */
-  --color-surface-raised: oklch(0.26 0.02 255);
-  --color-line: oklch(0.34 0.02 255);         /* bordas e malha */
-  --color-line-strong: oklch(0.45 0.025 255);
+  --color-bg: #161826;         /* fundo da página */
+  --color-surface: #232532;    /* cartões, painéis e campos */
+  --color-surface-raised: #2c2e3d;
+  --color-text: #e9e9ed;
 
-  /* --- Tinta ------------------------------------------------------------ */
-  --color-ink: oklch(0.96 0.005 255);         /* texto principal */
-  --color-ink-muted: oklch(0.75 0.015 255);   /* texto secundário */
-  --color-ink-faint: oklch(0.58 0.015 255);   /* rótulos, metadados */
+  /* Divisor a 16% da tinta: forte o bastante para separar, fraco o bastante
+     para não desenhar uma grade sobre o conteúdo. */
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
 
-  /* --- Acentos por disciplina ------------------------------------------ */
-  /* Escolhidos em oklch com luminância próxima: trocar o acento não muda o
-     peso visual do componente, e todos passam em contraste sobre --void. */
+  /* --- Acentos ---------------------------------------------------------- */
+  /* O blurple do produto. Acento único de interface: um só ponto de cor viva
+     por tela, e ele sempre significa "isto responde". */
+  --color-accent: #9184d9;
+  /* Acompanhante do acento — mesma família, mais lavado. Usado onde duas
+     categorias precisam se distinguir sem inventar uma terceira cor. */
+  --color-accent-2: #a7a1db;
+
+  /* --- Rampas ----------------------------------------------------------- */
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-accent-2-100: #f5f4ff;
+  --color-accent-2-200: #e7e5fe;
+  --color-accent-2-300: #d2cefd;
+  --color-accent-2-400: #b5afe8;
+  --color-accent-2-500: #9690c9;
+  --color-accent-2-600: #7972a9;
+  --color-accent-2-700: #5c5783;
+  --color-accent-2-800: #423e5d;
+  --color-accent-2-900: #2b293a;
+
+  /* Faixa de seção: índigo saturado, usado só como chão de bloco inteiro —
+     a tira de números da landing, por exemplo. Nunca como cor de componente. */
+  --color-section: #262a60;
+  --color-section-glow: #353b80;
+  --color-section-ghost: #4c5397;
+
+  /* --- Ritmo ------------------------------------------------------------ */
+  /* A escala de espaço do sistema, a 0,70× da base de 4px. Quem escreve JSX
+     usa os utilitários do Tailwind e não precisa dela; ela existe para que
+     marcação copiada da prancheta de design funcione sem tradução, e para as
+     próprias classes de `nocturne.css`. */
+  --space-1: 2.8px;
+  --space-2: 5.6px;
+  --space-3: 8.4px;
+  --space-4: 11.2px;
+  --space-6: 16.8px;
+  --space-8: 22.4px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* Elevação em fundo escuro é fio de contorno mais sombra ambiente, e não a
+     sombra difusa do tema claro: sobre #161826 uma sombra sozinha some. */
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+
+  /* --- Apelidos de compatibilidade -------------------------------------- */
+  /* A nomenclatura antiga (void/ink/line) ainda é usada por telas que não
+     foram reescritas. Mantê-la como apelido é o que permite trocar a paleta
+     inteira sem um mutirão de find-and-replace: as telas antigas mudam de cor
+     junto, e são reescritas quando chegar a vez delas. */
+  --color-void: var(--color-bg);
+  --color-line: var(--color-divider);
+  --color-line-strong: var(--color-neutral-700);
+  --color-ink: var(--color-text);
+  --color-ink-muted: var(--color-neutral-400);
+  --color-ink-faint: var(--color-neutral-500);
+  --radius-panel: var(--radius-lg);
+  --radius-control: var(--radius-md);
+
+  /* --- Acentos por disciplina ------------------------------------------- */
+  /* Cor como orientação: a área se reconhece antes de o título ser lido. Ficam
+     fora do acento de interface de propósito — quem pinta o gráfico é a
+     disciplina, quem pinta o botão é o blurple. */
   --color-accent-cyan: oklch(0.78 0.13 210);
   --color-accent-violet: oklch(0.72 0.15 295);
   --color-accent-amber: oklch(0.80 0.14 75);
@@ -36,85 +145,65 @@
   --color-signal-warn: oklch(0.80 0.14 75);
   --color-signal-danger: oklch(0.68 0.18 25);
 
-  /* --- Tipografia ------------------------------------------------------- */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  /* Números tabulares e largura fixa: leitura de instrumento não pode dançar
-     enquanto o valor muda a 60 fps. */
-  --font-mono: var(--font-mono-stack), ui-monospace, "SF Mono", monospace;
-
-  /* --- Ritmo ------------------------------------------------------------ */
-  --radius-panel: 0.75rem;
-  --radius-control: 0.5rem;
-
-  /* Transições curtas e físicas. Nada acima de 240ms: acima disso a interface
-     parece lenta, não elegante. */
-  --ease-out-instrument: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-:root {
-  color-scheme: dark;
-
   /* Acento ativo da página. As páginas de disciplina sobrescrevem esta
      variável, e todo componente que usa `--accent` se recolore junto. */
-  --accent: var(--color-accent-cyan);
+  --accent: var(--color-accent);
 }
 
 /* Malha milimetrada de fundo: referência espacial discreta, como papel de
-   laboratório. Some por completo em `prefers-reduced-transparency`. */
+   laboratório. */
 .grid-paper {
   background-image:
-    linear-gradient(to right, color-mix(in oklch, var(--color-line) 40%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklch, var(--color-line) 40%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--color-divider) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-divider) 60%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
 /* Corpo de texto longo — post do blog, e o que mais vier a ser lido de ponta
    a ponta. Escrito como classe, e não como utilitários soltos no JSX, porque
    o conteúdo vem de Markdown: não há onde pendurar `className` em um <h2> que
-   o renderizador cria sozinho.
-
-   A medida de linha fica em ~68 caracteres pelo `max-w-2xl` do contêiner.
-   Acima disso o olho perde a linha ao voltar para a esquerda. */
+   o renderizador cria sozinho. */
 .prose-orbital {
-  color: var(--color-ink-muted);
-  font-size: 1rem;
+  color: var(--color-neutral-200);
+  font-size: 16.5px;
   line-height: 1.75;
 }
 
 .prose-orbital > * + * {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
 }
 
 .prose-orbital h2 {
-  margin-top: 2.5rem;
-  color: var(--color-ink);
-  font-size: 1.25rem;
+  margin-top: 2.6rem;
+  color: var(--color-text);
+  font-size: 25px;
   font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .prose-orbital h3 {
   margin-top: 2rem;
-  color: var(--color-ink);
-  font-size: 1.05rem;
+  color: var(--color-text);
+  font-size: 19px;
   font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
 .prose-orbital strong {
-  color: var(--color-ink);
+  color: var(--color-text);
   font-weight: 600;
 }
 
 .prose-orbital a {
-  color: var(--accent);
+  color: var(--color-accent);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
 }
 
 .prose-orbital ul,
 .prose-orbital ol {
-  padding-left: 1.25rem;
+  padding-left: 20px;
 }
 
 .prose-orbital ul {
@@ -126,24 +215,24 @@
 }
 
 .prose-orbital li + li {
-  margin-top: 0.5rem;
+  margin-top: 0.55rem;
 }
 
 .prose-orbital li::marker {
-  color: var(--color-ink-faint);
+  color: var(--color-neutral-600);
 }
 
 .prose-orbital code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .prose-orbital pre {
   overflow-x: auto;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-md);
   background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   padding: 1rem;
   font-size: 0.8125rem;
   line-height: 1.6;
@@ -152,15 +241,26 @@
 /* Bloco de citação como nota de instrumento: uma barra de acento à esquerda,
    sem aspas decorativas. */
 .prose-orbital blockquote {
-  border-left: 2px solid var(--accent);
-  padding-left: 1rem;
-  color: var(--color-ink);
+  margin-top: 1.6rem;
+  border-left: 2px solid var(--color-accent);
+  padding: 2px 0 2px 18px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--color-text);
 }
 
+/* Régua solta usa o fade das pontas do Nocturne — ver `.hr` em nocturne.css. */
 .prose-orbital hr {
   border: 0;
-  border-top: 1px solid var(--color-line);
+  height: 1px;
   margin-block: 2.5rem;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px),
+    transparent
+  );
 }
 
 /* Fórmula em bloco pode estourar a largura no celular; rolar é melhor que
@@ -174,22 +274,22 @@
 .prose-orbital table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 .prose-orbital th,
 .prose-orbital td {
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-divider);
   padding: 0.5rem 0.75rem 0.5rem 0;
   text-align: left;
 }
 
 .prose-orbital th {
-  color: var(--color-ink-faint);
+  color: var(--color-neutral-500);
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 @media (prefers-reduced-motion: reduce) {

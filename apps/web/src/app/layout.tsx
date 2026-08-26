@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+// O design system pede Inter em 400/500/600/700. Servida pelo `next/font`, e
+// não pelo `@import` do Google Fonts que o bundle do sistema traz: assim o
+// arquivo é hospedado junto do app, sem requisição a terceiro no primeiro
+// paint e sem o salto de fonte que vem junto.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -26,15 +30,22 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0e14",
+  themeColor: "#161826",
   colorScheme: "dark",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // `data-scroll-behavior` confirma ao Next que a rolagem suave do
+  // `globals.css` é intencional: sem ele, o roteador desativa a própria
+  // restauração de posição entre rotas para não brigar com a animação.
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${mono.variable}`}>
+    <html
+      lang="pt-BR"
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${mono.variable}`}
+    >
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

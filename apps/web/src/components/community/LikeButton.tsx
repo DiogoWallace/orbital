@@ -36,19 +36,21 @@ export function LikeButton({
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, startTransition] = useTransition();
 
+  // O botao usa a mesma classe .btn do sistema que "Comentar" ao lado dele: os
+  // dois sao acoes de mesmo peso na linha da assinatura, e um par de formas
+  // diferentes ali sugeriria uma hierarquia que nao existe. Curtido, ele troca
+  // para o contorno de acento sem mudar de tamanho.
   const classes = cn(
-    "inline-flex items-center gap-1.5 rounded-full border transition-colors",
-    size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
-    liked
-      ? "border-[var(--color-signal-rose,var(--accent))] text-[var(--accent)]"
-      : "border-[var(--color-line-strong)] text-[var(--color-ink-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
+    "btn btn-secondary",
+    size === "sm" ? "px-2.5 py-1 text-[11px]" : "text-[13px]",
+    liked && "border-[var(--accent)] text-[var(--accent)]",
   );
 
   if (!autenticado) {
     return (
       <a href="/login" className={classes} title="Entre para curtir">
         <Coracao preenchido={false} />
-        <span className="tabular">{count}</span>
+        <span className="num">{count}</span>
         <span className="sr-only">{rotulo} — entre para curtir</span>
       </a>
     );
@@ -92,7 +94,7 @@ export function LikeButton({
         className={classes}
       >
         <Coracao preenchido={liked} />
-        <span className="tabular">{count}</span>
+        <span className="num">{count}</span>
         <span className="sr-only">{rotulo}</span>
       </button>
       {erro ? (
