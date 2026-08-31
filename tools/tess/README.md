@@ -19,10 +19,13 @@ cd tools/tess
 ```
 
 ```
-consultar-alvos.sh  →  escolher TIC  →  baixar-curva.py (sem setor)  →  escolher setor
-                                                  ↓
-                                        baixar-curva.py --setor N  →  JSON
+consultar-alvos.sh  →  escolher TIC  →  resolver-setores.py  →  escolher setor
+                                                                      ↓
+                                                    baixar-curva.py --setor N  →  JSON
 ```
+
+Os dois primeiros passos não precisam de instalação nenhuma — `curl` e a
+biblioteca padrão do Python bastam. Só o último exige `lightkurve`.
 
 ## 1. Escolher os candidatos
 
@@ -35,16 +38,39 @@ Archive, por TAP: planeta fundo, planeta raso e falso positivo.
 
 Verificado em 31/08/2026 — a execução trouxe 53, 60 e 11 linhas.
 
-## 2. Achar o setor
+## 2. Achar o setor — e conferir se o alvo presta
 
 **A coluna `sectors` da TOI vem vazia.** Testada em 40 linhas, zero preenchidas.
-O setor sai do próprio arquivo:
+O setor sai do arquivo, e para isso não é preciso instalar nada:
 
 ```bash
-python baixar-curva.py --tic 69679391
+python3 resolver-setores.py 256364928 --periodo 2.2186
 ```
 
-Sem `--setor`, o script lista o que existe e sai.
+Só biblioteca padrão. Consulta o TAP do MAST e agrupa os setores por cadência:
+
+```
+### TIC 256364928
+    20s:  3 setores [41, 54, 81]
+   120s:  4 setores [14, 41, 54, 81]  <- 2 min
+
+  ~12.2 eventos por setor, com periodo de 2.2186 d
+```
+
+**O `--periodo` é a parte que mais importa.** Um setor dura ~27 dias; um alvo de
+período longo cabe uma ou duas vezes nessa janela, e com um ou dois eventos não
+há periodicidade a estabelecer — o BLS precisa de repetição. O script avisa e
+sai com código 1 quando cabem menos de três eventos.
+
+Esse aviso existe porque o erro foi cometido: a primeira lista de candidatos
+recomendou um alvo de 16,9 dias de período, escolhido por profundidade e brilho,
+que renderia ~1,6 eclipses por setor. Profundidade e magnitude não bastam.
+
+Também aceita vários TIC de uma vez:
+
+```bash
+python3 resolver-setores.py 256364928 261136679 285524410
+```
 
 ## 3. Baixar e converter
 
@@ -85,6 +111,12 @@ que falhe não derruba as outras.
 **Há linhas com valores ausentes.** `pl_orbper` vazio aparece no CSV de falso
 positivo, por exemplo. Confira antes de adotar um alvo — um período em branco
 inviabiliza a comparação que justifica escolhê-lo.
+
+**O TAP do MAST exige `LANG=ADQL`.** Sem esse parâmetro ele responde
+`Error in query lang: Field required`, que não sugere a solução. E a tabela a
+usar é `ivoa.obscore`, a padronizada da IVOA: `dbo.caomobservation` existe, mas
+com outro conjunto de nomes de coluna. Não há coluna de setor — ele vem embutido
+no `obs_id`, no trecho `-sNNNN-`.
 
 ## O que precisa estar anotado no fim
 
