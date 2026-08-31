@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { LineChart, type ChartPoint } from "@/components/data/LineChart";
 import { ParameterPanel } from "@/components/lab/ParameterPanel";
 import { ReadoutGrid } from "@/components/lab/ReadoutGrid";
+import { RunRecorder } from "@/components/lab/RunRecorder";
 import { SimulationControls } from "@/components/lab/SimulationControls";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { useSimulationLoop } from "@/hooks/useSimulationLoop";
@@ -33,7 +34,7 @@ const READOUT_INTERVAL = 100;
 /** Teto de pontos por série: mantém o SVG do gráfico barato. */
 const MAX_SERIES_POINTS = 600;
 
-export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
+export default function OrbitalSandboxModule({ module, spec }: ModuleComponentProps) {
   const initialValues = useMemo(() => defaultValues(spec), [spec]);
 
   const [values, setValues] = useState<ParameterValues>(initialValues);
@@ -157,6 +158,13 @@ export default function OrbitalSandboxModule({ spec }: ModuleComponentProps) {
         />
 
         <ReadoutGrid outputs={spec.outputs} values={readout.values} />
+
+        <RunRecorder
+          moduleSlug={module.slug}
+          parameters={values}
+          summary={readout.values}
+          modelVersion={spec.modelVersion}
+        />
 
         <div className="grid gap-5 md:grid-cols-2">
           {spec.charts.map((chart) => (
