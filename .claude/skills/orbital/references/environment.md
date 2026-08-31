@@ -145,6 +145,16 @@ is queued, so a stopped worker fails silently. After editing a notification clas
 mail Blade view, **restart the worker** — `queue:work` holds the code in memory and
 will keep sending the previous version.
 
+**You reseeded, the API returns the new content, and the page still shows the old.**
+The Next dev server caches the fetch response, so `artisan db:seed` alone does not
+reach the screen — and the symptom looks exactly like a seeder that did not run.
+Confirm with `curl` against `localhost:8100` first; if the API is right, the cache is
+the culprit:
+
+```bash
+docker compose restart web
+```
+
 **`npm run typecheck` fails on unknown route types or image imports.** The script runs
 `next typegen` first for exactly this reason; if you ran `tsc --noEmit` by hand,
 `next-env.d.ts` and `.next/types` are missing, because they are generated and not

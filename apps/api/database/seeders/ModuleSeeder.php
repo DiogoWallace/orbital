@@ -295,26 +295,97 @@ class ModuleSeeder extends Seeder
      * de interesse. Mesma coluna, semântica diferente — é exatamente o que a
      * escolha por JSONB (ADR 0006) compra.
      *
+     * Cada ponto carrega uma **pergunta** antes da explicação. É a forma da
+     * narrativa científica: o texto responde a algo que a pessoa poderia ter
+     * perguntado sozinha, em vez de descrever a peça para quem já sabe o que
+     * ela faz. A pergunta é conteúdo editorial, e por isso mora aqui, no
+     * `spec` — trocar a redação não recompila nada.
+     *
+     * A **geometria não está aqui**. Onde cada peça é desenhada vive em
+     * `modules/rocket-anatomy/data/geometry.ts`, ligada por esta mesma `key`.
+     * Coordenada de desenho é assunto do componente: assim a redação muda sem
+     * tocar em código, e o desenho muda sem migration nem seed.
+     *
      * @return array<string, mixed>
      */
     private static function rocketAnatomySpec(): array
     {
         return [
-            'version' => '0.1.0',
+            'version' => '1.0.0',
             'view' => ['renderer' => 'svg', 'aspectRatio' => '3/4'],
             'hotspots' => [
-                ['key' => 'nose-cone', 'label' => 'Coifa'],
-                ['key' => 'payload', 'label' => 'Carga útil'],
-                ['key' => 'oxidizer-tank', 'label' => 'Tanque de oxidante'],
-                ['key' => 'fuel-tank', 'label' => 'Tanque de combustível'],
-                ['key' => 'pressurization', 'label' => 'Sistema de pressurização'],
-                ['key' => 'turbopump', 'label' => 'Turbobomba'],
-                ['key' => 'combustion-chamber', 'label' => 'Câmara de combustão'],
-                ['key' => 'regenerative-cooling', 'label' => 'Refrigeração regenerativa'],
-                ['key' => 'nozzle', 'label' => 'Tubeira'],
-                ['key' => 'gimbal', 'label' => 'Atuadores de vetorização'],
-                ['key' => 'avionics', 'label' => 'Aviônica e sensores'],
-                ['key' => 'structure', 'label' => 'Estrutura e interestágio'],
+                [
+                    'key' => 'nose-cone',
+                    'label' => 'Coifa',
+                    'question' => 'Por que a ponta é afilada, se o foguete passa a maior parte do voo fora do ar?',
+                    'body' => "A coifa protege a carga útil justamente na fase em que ainda há ar: as primeiras dezenas de quilômetros, onde a pressão dinâmica e o aquecimento são maiores. A forma existe para atravessar essa parte com o menor arrasto possível.\n\nDepois disso ela deixa de servir para alguma coisa, e é solta. Continuar carregando a coifa até a órbita seria transportar massa que não faz nada — e massa que não faz nada sai da carga útil.",
+                ],
+                [
+                    'key' => 'payload',
+                    'label' => 'Carga útil',
+                    'question' => 'De tudo que sobe, quanto é a razão de o foguete existir?',
+                    'body' => "A carga útil é a única parte que não é meio: satélite, sonda, tripulação. Todo o resto existe para levá-la até uma velocidade e uma altitude específicas.\n\nA fração da massa de decolagem que chega ao destino é pequena — poucos por cento. Isso não é falha de engenharia: é a consequência direta da equação do foguete, em que a massa cresce exponencialmente com a variação de velocidade desejada.",
+                ],
+                [
+                    'key' => 'oxidizer-tank',
+                    'label' => 'Tanque de oxidante',
+                    'question' => 'Por que levar oxigênio, se ele é abundante na atmosfera?',
+                    'body' => "Porque acima da atmosfera não há nenhum. Um motor de avião respira o ar que atravessa; um foguete precisa funcionar onde não existe ar, então carrega o oxidante junto.\n\nEsse é o tanque maior em massa na maioria dos veículos: queimar exige bem mais oxidante do que combustível, e a proporção entre os dois é uma escolha de projeto, não um acaso.",
+                ],
+                [
+                    'key' => 'fuel-tank',
+                    'label' => 'Tanque de combustível',
+                    'question' => 'Por que dois tanques separados, e não a mistura pronta?',
+                    'body' => "Misturar combustível e oxidante antes da câmara não produz um motor: produz um explosivo. A separação é o que permite controlar onde e em que proporção a reação acontece.\n\nEla também deixa o combustível fazer outro trabalho antes de queimar. Em boa parte dos motores, ele passa pelas paredes da câmara como refrigerante — e chega à combustão já pré-aquecido.",
+                ],
+                [
+                    'key' => 'pressurization',
+                    'label' => 'Sistema de pressurização',
+                    'question' => 'O que impede o tanque de amassar enquanto esvazia?',
+                    'body' => "À medida que o propelente sai, o volume que ele ocupava precisa ser preenchido por gás sob pressão. Sem isso o tanque colapsaria sobre o próprio vazio.\n\nA pressão tem uma segunda função, menos óbvia: manter a entrada da bomba sempre acima da pressão de vapor do líquido. Abaixo dela o propelente ferve dentro da tubulação e a bomba passa a girar em bolha — cavitação, que destrói a máquina em segundos.",
+                ],
+                [
+                    'key' => 'turbopump',
+                    'label' => 'Turbobomba',
+                    'question' => 'Como empurrar propelente para dentro de uma câmara que está a uma pressão maior que a do tanque?',
+                    'body' => "Com uma bomba. A turbobomba eleva a pressão do propelente acima da pressão da câmara, e é acionada por uma turbina movida por uma fração do próprio propelente.\n\nÉ ela que permite os tanques serem leves. Sem bomba, o tanque teria de sustentar sozinho a pressão da câmara, e a espessura de parede necessária para isso acabaria com o orçamento de massa do veículo.",
+                ],
+                [
+                    'key' => 'combustion-chamber',
+                    'label' => 'Câmara de combustão',
+                    'question' => 'Por que a pressão dentro da câmara importa tanto?',
+                    'body' => "É aqui que energia química vira energia térmica: os propelentes se encontram, reagem e produzem gás muito quente e muito comprimido.\n\nA pressão da câmara é o que define quanto desse calor a tubeira vai conseguir converter em velocidade. Pressão maior permite uma expansão maior, e expansão maior significa mais empuxo pela mesma área de garganta — que é a razão de a engenharia de motores girar tanto em torno desse número.",
+                ],
+                [
+                    'key' => 'regenerative-cooling',
+                    'label' => 'Refrigeração regenerativa',
+                    'question' => 'Como a parede sobrevive a um gás mais quente que o ponto de fusão do metal dela?',
+                    'body' => "Ela não sobreviveria parada. O combustível circula por canais dentro da própria parede antes de ser queimado, e leva o calor embora continuamente.\n\nO nome “regenerativa” vem do que acontece com esse calor: ele não é jogado fora. O combustível chega à câmara pré-aquecido, e a energia que ele retirou da parede volta para dentro do ciclo. O refrigerante é o próprio combustível.",
+                ],
+                [
+                    'key' => 'nozzle',
+                    'label' => 'Tubeira',
+                    'question' => 'Por que o formato de sino? O empuxo não vem de queimar?',
+                    'body' => "Queimar produz gás quente e comprimido, que sozinho empurra em todas as direções. O empuxo aparece quando esse gás é obrigado a sair por um caminho só, e rápido.\n\nA tubeira converge até a garganta, onde o escoamento atinge a velocidade do som, e volta a se abrir para acelerá-lo além dela. A razão de expansão é escolhida para a altitude em que o motor trabalha — e é por isso que motor de primeiro estágio e motor de vácuo têm sinos de tamanhos tão diferentes.",
+                ],
+                [
+                    'key' => 'gimbal',
+                    'label' => 'Atuadores de vetorização',
+                    'question' => 'Sem ar, como se corrige a direção?',
+                    'body' => "Superfícies de controle precisam de ar para funcionar, e ele acaba cedo. O que sobra é inclinar o próprio motor.\n\nQuando o empuxo deixa de apontar para o centro de massa, aparece um torque, e o veículo gira. Bastam alguns graus de inclinação: os atuadores movem o motor inteiro, e o foguete é pilotado pela direção da sua própria exaustão.",
+                ],
+                [
+                    'key' => 'avionics',
+                    'label' => 'Aviônica e sensores',
+                    'question' => 'Quem decide, a cada instante, para onde apontar?',
+                    'body' => "Sensores inerciais medem atitude e aceleração muitas vezes por segundo. O computador compara o que está acontecendo com a trajetória planejada e comanda a correção.\n\nNada disso é pilotado à mão. A malha — medir, comparar, corrigir — fecha rápido demais para reação humana, e é ela que transforma um tubo cheio de propelente em um veículo dirigível.",
+                ],
+                [
+                    'key' => 'structure',
+                    'label' => 'Estrutura e interestágio',
+                    'question' => 'O que segura tudo isso enquanto o conjunto acelera?',
+                    'body' => "A estrutura enfrenta dois momentos difíceis: a região de máxima pressão dinâmica, ainda na atmosfera, e o pico de aceleração perto do fim da queima, quando o veículo já está leve e o empuxo continua alto.\n\nO interestágio é a peça que une dois estágios e abriga o mecanismo de separação. Aqui cada quilograma economizado vira carga útil, e cada quilograma a mais sai dela — o que faz da estrutura um exercício permanente de tirar material sem perder margem.",
+                ],
             ],
         ];
     }

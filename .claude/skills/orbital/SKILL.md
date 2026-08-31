@@ -73,7 +73,7 @@ gets built.
 | — · Nocturne redesign | commit `66da1ac` | done 26/08 — tokens in `styles/tokens.css` + `styles/nocturne.css` |
 | — · Error screens | commit `b328b45` | done 31/08 — one `ErrorScreen` for every case, plus a static Caddy page for when the Next upstream is down |
 | — · Saving a run | commit `20a5034` | done 31/08 — `RunRecorder` in `components/lab/`; closes a write path the backend had from day one and the UI never called |
-| 2 · 🚀 Rocket anatomy (interactive SVG) | roadmap | **not started** — `rocket-anatomy` is not in the registry |
+| 2 · 🚀 Rocket anatomy (interactive SVG) | `rocket-anatomy` | **built 31/08, still `Draft`** — 12 selectable systems, narrative in the `spec`. The copy is a first draft awaiting review; flip `ModuleStatus::Draft` in `ModuleSeeder` when it is approved |
 | 3 · 🚀 Rocket live simulation | roadmap | not started |
 | 4 · Astronomy: dataset ingestion | roadmap | not started |
 | 5 · Chemistry / 3D molecules | roadmap | not started |

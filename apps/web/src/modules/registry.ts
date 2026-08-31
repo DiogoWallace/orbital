@@ -16,6 +16,7 @@ type ModuleLoader = () => Promise<{ default: ModuleDefinition }>;
 
 const registry: Record<string, ModuleLoader> = {
   "orbital-sandbox": () => import("./orbital-sandbox"),
+  "rocket-anatomy": () => import("./rocket-anatomy"),
 };
 
 export function isModuleRegistered(key: string | null | undefined): key is string {
