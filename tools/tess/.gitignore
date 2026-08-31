@@ -1,0 +1,5 @@
+# Saidas de consulta e curvas baixadas: sao regeraveis e podem ser grandes.
+# O que o repositorio versiona e a ferramenta; o dado convertido entra
+# por outro caminho, com procedencia (ADR 0014).
+candidatos/
+curvas/

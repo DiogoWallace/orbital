@@ -8,6 +8,7 @@
 !.env.example
 
 docs
+tools
 Makefile
 README.md
 
