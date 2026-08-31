@@ -60,6 +60,67 @@ describe("curva sintética", () => {
   });
 });
 
+describe("binária eclipsante", () => {
+  it("põe um segundo mergulho na fase oposta", () => {
+    const curva = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.12,
+      secondaryDepth: 0.03,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    const dobrada = foldCurve(curva, 1.3, 0.4);
+
+    const menorEm = (de: number, ate: number) => {
+      let menor = Infinity;
+      for (let i = 0; i < dobrada.phase.length; i += 1) {
+        if (dobrada.phase[i] >= de && dobrada.phase[i] <= ate) {
+          menor = Math.min(menor, dobrada.flux[i]);
+        }
+      }
+      return menor;
+    };
+
+    const primario = menorEm(-0.05, 0.05);
+    const secundario = Math.min(menorEm(0.45, 0.5), menorEm(-0.5, -0.45));
+    const foraDosDois = menorEm(0.15, 0.35);
+
+    // O primário é o mais fundo, o secundário existe e é mais raso, e entre os
+    // dois a curva volta ao normal. É essa assinatura que denuncia a binária.
+    expect(primario).toBeLessThan(0.9);
+    expect(secundario).toBeGreaterThan(primario);
+    expect(secundario).toBeLessThan(0.99);
+    expect(foraDosDois).toBeCloseTo(1, 3);
+  });
+
+  it("não inventa secundário quando ele não foi pedido", () => {
+    const curva = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.12,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    const dobrada = foldCurve(curva, 1.3, 0.4);
+
+    let menorNaFaseOposta = Infinity;
+    for (let i = 0; i < dobrada.phase.length; i += 1) {
+      if (Math.abs(dobrada.phase[i]) >= 0.45) {
+        menorNaFaseOposta = Math.min(menorNaFaseOposta, dobrada.flux[i]);
+      }
+    }
+
+    expect(menorNaFaseOposta).toBeCloseTo(1, 6);
+  });
+});
+
 describe("mediana", () => {
   it("acha o valor central em janela ímpar", () => {
     expect(medianInPlace(Float64Array.from([5, 1, 9, 3, 7]), 5)).toBe(5);

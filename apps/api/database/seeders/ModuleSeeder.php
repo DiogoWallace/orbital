@@ -159,8 +159,31 @@ class ModuleSeeder extends Seeder
                 'componentKey' => 'transit-explorer',
                 'minutes' => 25,
                 'tags' => ['Exoplanetas', 'Séries temporais', 'Fotometria'],
-                'spec' => ['version' => '0.1.0', 'parameters' => [], 'outputs' => []],
-                'sections' => [],
+                'spec' => self::transitExplorerSpec(),
+                'sections' => [
+                    [
+                        'kind' => SectionKind::Text,
+                        'title' => 'O que é um trânsito',
+                        'body' => "Quando um planeta passa na frente da própria estrela, ele bloqueia uma fração pequena da luz que chega até nós. A queda é minúscula — para um planeta do tamanho de Júpiter diante de uma estrela como o Sol, cerca de um por cento; para um planeta do tamanho da Terra, algo perto de um centésimo disso.\n\nNão se vê o planeta. Vê-se a estrela ficar um pouco mais fraca, na mesma medida, no mesmo intervalo, repetidas vezes. É a repetição que sustenta a afirmação: uma queda isolada é um acidente qualquer; uma queda que volta com período constante é um corpo em órbita.",
+                    ],
+                    [
+                        'kind' => SectionKind::Text,
+                        'title' => 'Por que achatar a curva antes',
+                        'body' => "A estrela não fica parada. Manchas na superfície, rotação e pulsação produzem uma ondulação lenta que costuma ser muito maior que o trânsito procurado. O método de busca assume uma linha de base plana, então, sem achatar, ele encontra a ondulação antes de encontrar o planeta.\n\nA janela do achatamento é o compromisso central deste módulo. Curta demais, ela acompanha o próprio trânsito e o remove junto com a variabilidade. Longa demais, deixa a ondulação passar. Vale experimentar os dois extremos no alvo raso e ver o sinal aparecer e sumir.",
+                    ],
+                    [
+                        'kind' => SectionKind::Formula,
+                        'title' => 'Profundidade e tamanho do planeta',
+                        'body' => '\\frac{\\Delta F}{F} \\approx \\left(\\frac{R_p}{R_\\star}\\right)^2',
+                        'meta' => ['caption' => 'A fração de luz bloqueada é aproximadamente a razão entre as áreas — por isso a profundidade mede o raio do planeta em unidades do raio da estrela, e não a massa dele.'],
+                    ],
+                    [
+                        'kind' => SectionKind::Callout,
+                        'title' => 'Encontrar um sinal não é encontrar um planeta',
+                        'body' => 'Uma binária eclipsante, uma estrela vizinha contaminando a mesma abertura ou um artefato do instrumento produzem quedas periódicas convincentes. Confirmar um planeta exige descartar cada uma dessas hipóteses e, depois, observação independente. O que este módulo faz é o primeiro passo de uma cadeia longa.',
+                        'meta' => ['tone' => 'warning'],
+                    ],
+                ],
             ],
             [
                 'slug' => 'geometria-molecular',
@@ -286,6 +309,177 @@ class ModuleSeeder extends Seeder
                     'label' => 'Velocidade no tempo',
                     'xLabel' => 'Tempo (min)',
                     'yLabel' => 'Velocidade (km/s)',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Módulo de análise: os parâmetros são do **método**, não do fenômeno.
+     *
+     * Repare no que não está aqui: o alvo. Qual dado se analisa e como se
+     * analisa são elos diferentes da cadeia de reprodutibilidade (ADR 0014), e
+     * misturá-los no mesmo painel embaralharia os dois. O alvo é escolhido em
+     * um seletor próprio, que vira a lista de `datasets` quando houver dado
+     * real.
+     *
+     * @return array<string, mixed>
+     */
+    private static function transitExplorerSpec(): array
+    {
+        return [
+            'version' => '1.0.0',
+            'modelVersion' => '1.0.0',
+            'view' => ['renderer' => 'none', 'aspectRatio' => '16/9'],
+            'parameters' => [
+                [
+                    'key' => 'detrendWindowDays',
+                    'label' => 'Janela de achatamento',
+                    'unit' => 'd',
+                    'type' => 'number',
+                    'min' => 0.1,
+                    'max' => 2,
+                    'step' => 0.05,
+                    'default' => 0.5,
+                    'description' => 'Largura da mediana móvel. Curta demais engole o próprio trânsito; longa demais deixa a variabilidade passar.',
+                ],
+                [
+                    'key' => 'minPeriod',
+                    'label' => 'Menor período testado',
+                    'unit' => 'd',
+                    'type' => 'number',
+                    'min' => 0.3,
+                    'max' => 3,
+                    'step' => 0.1,
+                    'default' => 0.5,
+                    'description' => 'Piso da busca. Abaixo de meio dia a curva raramente tem pontos suficientes por trânsito.',
+                ],
+                [
+                    'key' => 'maxPeriod',
+                    'label' => 'Maior período testado',
+                    'unit' => 'd',
+                    'type' => 'number',
+                    'min' => 4,
+                    'max' => 20,
+                    'step' => 0.5,
+                    'default' => 12,
+                    'description' => 'Teto da busca. Acima de um terço da janela observada, poucos trânsitos cabem na série e a detecção deixa de ser confiável.',
+                ],
+                [
+                    'key' => 'periodCount',
+                    'label' => 'Períodos na grade',
+                    'unit' => '',
+                    'type' => 'number',
+                    'min' => 500,
+                    'max' => 3000,
+                    'step' => 100,
+                    'default' => 1500,
+                    'description' => 'Resolução da busca. Grade rala pode passar ao lado do período verdadeiro; grade fina custa tempo.',
+                ],
+                [
+                    'key' => 'bins',
+                    'label' => 'Divisões de fase',
+                    'unit' => '',
+                    'type' => 'number',
+                    'min' => 60,
+                    'max' => 300,
+                    'step' => 10,
+                    'default' => 160,
+                    'description' => 'Em quantas fatias a fase é dividida. Define a menor duração de trânsito que a caixa consegue descrever.',
+                ],
+                [
+                    'key' => 'maxDuty',
+                    'label' => 'Maior fração em trânsito',
+                    'unit' => '',
+                    'type' => 'number',
+                    'min' => 0.02,
+                    'max' => 0.3,
+                    'step' => 0.01,
+                    'default' => 0.12,
+                    'description' => 'Teto da largura da caixa. Um trânsito planetário ocupa uma fatia pequena do período; permitir muito abre espaço para falso positivo.',
+                ],
+            ],
+            'presets' => [
+                [
+                    'key' => 'busca-padrao',
+                    'label' => 'Busca padrão',
+                    'values' => [
+                        'detrendWindowDays' => 0.5,
+                        'minPeriod' => 0.5,
+                        'maxPeriod' => 12,
+                        'periodCount' => 1500,
+                        'bins' => 160,
+                        'maxDuty' => 0.12,
+                    ],
+                ],
+                [
+                    'key' => 'periodos-curtos',
+                    'label' => 'Períodos curtos, grade fina',
+                    'values' => [
+                        'detrendWindowDays' => 0.4,
+                        'minPeriod' => 0.3,
+                        'maxPeriod' => 5,
+                        'periodCount' => 2500,
+                        'bins' => 220,
+                        'maxDuty' => 0.1,
+                    ],
+                ],
+                [
+                    'key' => 'achatamento-agressivo',
+                    'label' => 'Achatamento agressivo',
+                    'values' => [
+                        'detrendWindowDays' => 0.15,
+                        'minPeriod' => 0.5,
+                        'maxPeriod' => 12,
+                        'periodCount' => 1500,
+                        'bins' => 160,
+                        'maxDuty' => 0.12,
+                    ],
+                ],
+                [
+                    'key' => 'achatamento-suave',
+                    'label' => 'Achatamento suave',
+                    'values' => [
+                        'detrendWindowDays' => 1.6,
+                        'minPeriod' => 0.5,
+                        'maxPeriod' => 12,
+                        'periodCount' => 1500,
+                        'bins' => 160,
+                        'maxDuty' => 0.12,
+                    ],
+                ],
+            ],
+            'outputs' => [
+                ['key' => 'period', 'label' => 'Período', 'unit' => 'd', 'precision' => 4],
+                ['key' => 'depthPercent', 'label' => 'Profundidade', 'unit' => '%', 'precision' => 3],
+                ['key' => 'durationHours', 'label' => 'Duração', 'unit' => 'h', 'precision' => 2],
+                ['key' => 'snr', 'label' => 'Relação sinal/ruído', 'unit' => '', 'precision' => 1],
+                ['key' => 'power', 'label' => 'Altura do pico', 'unit' => '×10⁻³', 'precision' => 2],
+            ],
+            'charts' => [
+                [
+                    'key' => 'raw',
+                    'label' => 'Curva de luz',
+                    'xLabel' => 'Tempo (dias)',
+                    'yLabel' => 'Fluxo relativo',
+                ],
+                [
+                    'key' => 'detrended',
+                    'label' => 'Curva achatada',
+                    'xLabel' => 'Tempo (dias)',
+                    'yLabel' => 'Fluxo relativo',
+                ],
+                [
+                    'key' => 'periodogram',
+                    'label' => 'Periodograma',
+                    'xLabel' => 'Período (dias)',
+                    'yLabel' => 'Signal residue',
+                ],
+                [
+                    'key' => 'folded',
+                    'label' => 'Curva dobrada em fase',
+                    'xLabel' => 'Fase',
+                    'yLabel' => 'Fluxo relativo',
                 ],
             ],
         ];

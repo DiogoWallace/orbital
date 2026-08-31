@@ -33,6 +33,16 @@ export interface SyntheticOptions {
   period: number | null;
   /** Profundidade do trânsito, em fração do fluxo. 0.01 é 1%. */
   depth: number;
+  /**
+   * Profundidade do eclipse secundário, em fração do fluxo.
+   *
+   * Existe para poder gerar uma **binária eclipsante**, que é o falso positivo
+   * clássico da busca por trânsitos: duas estrelas se eclipsando produzem uma
+   * queda periódica igualzinha à de um planeta. O que as separa é a companheira
+   * também sumir atrás da principal, meio período depois, numa queda mais rasa.
+   * Sem isso no gerador, o módulo não teria como ensinar a desconfiar.
+   */
+  secondaryDepth: number;
   /** Duração do trânsito, em horas. */
   durationHours: number;
   /** Instante do primeiro trânsito, em dias desde o início. */
@@ -61,6 +71,7 @@ export const DEFAULT_SYNTHETIC: SyntheticOptions = {
   cadenceMinutes: 2,
   period: 3.2,
   depth: 0.01,
+  secondaryDepth: 0,
   durationHours: 2.5,
   epoch: 1.1,
   noise: 0.0012,
@@ -176,8 +187,26 @@ export function generateLightCurve(options: Partial<SyntheticOptions> = {}): Lig
         ? 0
         : transitShape(t, opcoes.period, opcoes.epoch, duracaoDias, opcoes.ingressFraction);
 
+    // O secundário fica meio período depois do primário — é essa assinatura,
+    // e não a profundidade sozinha, que denuncia uma binária eclipsante.
+    const secundario =
+      opcoes.period === null || opcoes.secondaryDepth === 0
+        ? 0
+        : transitShape(
+            t,
+            opcoes.period,
+            opcoes.epoch + opcoes.period / 2,
+            duracaoDias,
+            opcoes.ingressFraction,
+          );
+
     time[i] = t;
-    flux[i] = 1 + variabilidade - cobertura * opcoes.depth + gaussiano() * opcoes.noise;
+    flux[i] =
+      1 +
+      variabilidade -
+      cobertura * opcoes.depth -
+      secundario * opcoes.secondaryDepth +
+      gaussiano() * opcoes.noise;
   }
 
   return { time, flux };
