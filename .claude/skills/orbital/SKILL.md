@@ -71,7 +71,8 @@ gets built.
 | — · Blog (`Editorial`) | ADR 0012 | done 23/08 — 3 seeded posts. **Writing a post is still seed or tinker; there is no editing screen** |
 | — · Community | ADR 0013 | done 23/08 — comments, polymorphic likes, public profiles. **No moderation screen and no avatar upload** |
 | — · Nocturne redesign | commit `66da1ac` | done 26/08 — tokens in `styles/tokens.css` + `styles/nocturne.css` |
-| — · Error screens | **uncommitted, in the working tree** | see §3 |
+| — · Error screens | commit `b328b45` | done 31/08 — one `ErrorScreen` for every case, plus a static Caddy page for when the Next upstream is down |
+| — · Saving a run | commit `20a5034` | done 31/08 — `RunRecorder` in `components/lab/`; closes a write path the backend had from day one and the UI never called |
 | 2 · 🚀 Rocket anatomy (interactive SVG) | roadmap | **not started** — `rocket-anatomy` is not in the registry |
 | 3 · 🚀 Rocket live simulation | roadmap | not started |
 | 4 · Astronomy: dataset ingestion | roadmap | not started |
@@ -90,26 +91,39 @@ the directory exists, the generation does not. Frontend types are hand-written i
 
 ---
 
-## 3. What is in the working tree right now
+## 3. The direction, decided 31/08/2026
 
-Uncommitted work on `main`, an **error-screen slice** that is coherent and looks
-finished but was never committed:
+The project has **more infrastructure than experience**: one module against an
+architecture built for hundreds. The order was inverted deliberately from here on —
+**experience → product → engineering**, not more engineering.
 
-- new: `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx`,
-  `app/(platform)/error.tsx`, `app/(platform)/not-found.tsx`
-- new: `components/layout/ErrorScreen.tsx` (one screen for every failure case) and
-  `components/layout/BrandBar.tsx` (a header that cannot fail because it never reads
-  the session)
-- new: `docker/caddy/erros/indisponivel.html` — static edge page for when the Next
-  upstream is down, served by Caddy via `handle_errors` with
-  `status {err.status_code}` so a 502 does not answer 200
-- modified: `styles/tokens.css` (fallback inside `var(--font-inter, "Inter")`, because
-  `global-error.tsx` renders when the root layout — which hangs that variable on
-  `<html>` — did not), `docker-compose.prod.yml` (mounts `erros/` read-only),
-  `docker/caddy/Caddyfile`
+What that means in practice, and what to push back on:
 
-Before starting anything new, decide with the user whether this gets committed first.
-Do not silently fold unrelated changes into it.
+- **No new infrastructure, no new ADRs, no new libraries** until a real problem
+  demands one. `ARCHITECTURE.md` §7 already lists what is deliberately out.
+- **The rocket is the flagship**, and it must be built as a **module** under ADR 0005
+  — folder, registry line, seeder row, rendered by the existing `modulos/[slug]`
+  shell. Not as a bespoke `/lab` page. Building it outside the contract would waste
+  the one chance to find out whether the contract survives a hard module. If the shell
+  turns out to be too tight, that *is* the finding, and it gets fixed in the shell
+  once, for every module.
+- **Do not build a catalogue of named "scientific components" up front.** The rule in
+  §1 holds: born in the module, copied on the second, promoted on the third. What
+  repeats between `orbital-sandbox` and the rocket is what earns a place in
+  `components/lab/` — that harvest is a step of its own, after the rocket works.
+- **Navigation, naming and "explore by phenomenon" wait.** They are good ideas that
+  need content; with one module they would render empty categories. The taxonomy
+  (`Topic`) already supports them, so they stay cheap later.
+
+Planned order: rocket anatomy (SVG, hotspots, narrative sections) → live simulation in
+the same module → experiment comparison, fork and sharing (`is_public` + the UUID are
+already there) → harvest into `components/lab/`.
+
+One open question for the anatomy step: **scientific narrative** — question,
+hypothesis, experiment, result, explanation — has a data shape, not just a layout.
+`module_sections` and `SectionKind {text, formula, figure, callout, reference}`
+already exist. Decide deliberately whether the narrative becomes new enum cases or
+rides on the module's `spec`, which already passes unknown keys through.
 
 ---
 
