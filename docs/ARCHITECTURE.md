@@ -192,3 +192,4 @@ perigosos.
 | [0011](adr/0011-login-com-google.md) | Login com o Google: OAuth na API, ticket para o BFF |
 | [0012](adr/0012-blog-como-dominio-proprio.md) | Blog como domínio próprio, e autenticação opcional nas rotas públicas |
 | [0013](adr/0013-comunidade-comentarios-curtidas-perfis.md) | Comunidade: comentários, curtidas e perfis públicos |
+| [0014](adr/0014-reprodutibilidade-de-uma-analise.md) | Toda análise precisa ser reproduzível |
