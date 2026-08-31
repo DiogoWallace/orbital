@@ -154,10 +154,11 @@ class ModuleSeeder extends Seeder
                 'subtitle' => 'Encontrar um planeta em uma curva de luz',
                 'summary' => 'Explorador de curvas de luz: filtre ruído, identifique quedas periódicas de brilho e estime raio e período orbital a partir da série temporal.',
                 'kind' => ModuleKind::DatasetExplorer,
-                'status' => ModuleStatus::Draft,
+                'status' => ModuleStatus::Published,
                 'difficulty' => DifficultyLevel::Advanced,
                 'componentKey' => 'transit-explorer',
                 'minutes' => 25,
+                'publishedDaysAgo' => 0,
                 'tags' => ['Exoplanetas', 'Séries temporais', 'Fotometria'],
                 'spec' => self::transitExplorerSpec(),
                 'sections' => [
