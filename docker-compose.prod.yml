@@ -22,6 +22,10 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL no .env.production}
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # A tela servida quando o upstream não responde. Somente leitura: o
+      # Caddy só precisa ler, e o container não tem por que poder escrever
+      # dentro do repositório.
+      - ./docker/caddy/erros:/srv/erros:ro
       # Os certificados vivem em volume: sem isso, cada deploy pediria emissão
       # nova e esbarraria no limite semanal do Let's Encrypt.
       - caddy_data:/data

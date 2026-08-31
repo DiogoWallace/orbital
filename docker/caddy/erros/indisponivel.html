@@ -1,0 +1,185 @@
+<!doctype html>
+<!--
+  A tela de erro da borda.
+
+  Servida pelo Caddy quando o upstream não responde: container derrubado,
+  aplicação no meio de um deploy, ou processo morto. É a única tela do projeto
+  que não pode depender de nada — nem do Next, nem da API, nem de fonte
+  externa, nem de folha de estilo em arquivo separado. Tudo mora aqui dentro,
+  em CSS inline, com as cores do Nocturne escritas à mão em hexadecimal em vez
+  de token: os tokens vivem num CSS que a aplicação serve, e a aplicação é
+  exatamente o que está fora do ar.
+
+  Sem fonte da web, também de propósito. Buscar a Inter no Google levaria a
+  página a esperar uma rede que pode estar ruim justamente agora; a pilha de
+  fontes do sistema desenha na hora.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Orbital — fora do ar por um instante</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background: #161826;
+        color: #e9e9ed;
+        font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .caixa {
+        width: 100%;
+        max-width: 620px;
+      }
+
+      .marca {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 44px;
+      }
+
+      .ponto {
+        display: block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #9184d9;
+        box-shadow: 0 0 0 3px rgba(145, 132, 217, 0.22);
+      }
+
+      .nome {
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #d2cefd;
+      }
+
+      .traco {
+        display: block;
+        width: 22px;
+        height: 2px;
+        background: #9184d9;
+      }
+
+      .codigo {
+        margin: 20px 0 0;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 72px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #595d6c;
+      }
+
+      h1 {
+        margin: 16px 0 0;
+        font-size: 30px;
+        font-weight: 500;
+        line-height: 1.12;
+        letter-spacing: -0.025em;
+      }
+
+      p.texto {
+        margin: 14px 0 0;
+        font-size: 15px;
+        color: #b2b6ca;
+      }
+
+      .acao {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 28px;
+        padding: 10px 18px;
+        border: 1px solid #9184d9;
+        border-radius: 8px;
+        color: #9184d9;
+        font-size: 15px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        background: transparent;
+        font-family: inherit;
+        transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .acao:hover {
+        background: rgba(145, 132, 217, 0.12);
+      }
+
+      .rodape {
+        margin: 40px 0 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(233, 233, 237, 0.16);
+        font-size: 11px;
+        line-height: 1.6;
+        color: #75798c;
+      }
+
+      @media (max-width: 480px) {
+        .codigo {
+          font-size: 56px;
+        }
+
+        h1 {
+          font-size: 25px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="caixa">
+      <div class="marca">
+        <span class="ponto" aria-hidden="true"></span>
+        <span class="nome">Orbital</span>
+      </div>
+
+      <p class="kicker"><span class="traco" aria-hidden="true"></span> Sem sinal</p>
+
+      <p class="codigo" aria-hidden="true">{{placeholder "http.error.status_code"}}</p>
+
+      <h1>O laboratório está fora do ar por um instante.</h1>
+
+      <p class="texto">
+        A aplicação não respondeu. Quase sempre é uma atualização em andamento, e
+        nesse caso volta sozinha em menos de um minuto.
+      </p>
+
+      <!-- Recarregar em vez de link para a home: se o upstream caiu, a home
+           está tão fora quanto esta URL, e mandar a pessoa para lá só troca uma
+           tela de erro por outra. -->
+      <button class="acao" type="button" onclick="location.reload()">Tentar de novo</button>
+
+      <p class="rodape">
+        Se continuar assim por mais de alguns minutos, não é atualização — é
+        falha, e vale avisar.
+      </p>
+    </div>
+  </body>
+</html>

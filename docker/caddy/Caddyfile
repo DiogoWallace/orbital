@@ -36,6 +36,31 @@
 		reverse_proxy web:3000
 	}
 
+	# Rede de segurança da borda: o upstream não respondeu.
+	#
+	# Isto cobre a janela em que o Next está fora — a troca de containers de
+	# todo deploy, um processo que morreu, um build que ainda não subiu. As
+	# telas de erro da aplicação não servem aqui, porque quem as renderiza é
+	# justamente o que caiu; esta página é HTML estático, sem dependência
+	# nenhuma, servida pelo próprio Caddy.
+	#
+	# `status {err.status_code}` preserva o código original (502, 503, 504) em
+	# vez de responder 200 com cara de erro. A diferença importa para o
+	# monitoramento e para o buscador: uma indisponibilidade que se anuncia
+	# como sucesso é pior que a indisponibilidade.
+	handle_errors {
+		root * /srv/erros
+		rewrite * /indisponivel.html
+		# O `templates` existe por um motivo só: escrever o código real na
+		# página. Uma tela fixa dizendo 503 enquanto a resposta é 502 seria uma
+		# mentira pequena, mas é justamente aqui que a interface não pode
+		# mentir. Fora esse número, a página continua estática.
+		templates
+		file_server {
+			status {err.status_code}
+		}
+	}
+
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 20mb
