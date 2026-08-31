@@ -75,7 +75,9 @@ gets built.
 | — · Saving a run | commit `20a5034` | done 31/08 — `RunRecorder` in `components/lab/`; closes a write path the backend had from day one and the UI never called |
 | 2 · 🚀 Rocket anatomy (interactive SVG) | `rocket-anatomy` | **done 31/08, published** — 12 selectable systems, narrative in the `spec` |
 | 3 · 🚀 Rocket live simulation | same module | **done 31/08** — vertical ascent in `simulation/ascent.ts`, 17 Vitest cases. The `spec` carries `hotspots` **and** `parameters`, and the selected system shows the readings that belong to it |
-| 4 · Astronomy: dataset ingestion | roadmap | not started |
+| — · Reproducibility | ADR **0014** | decided 31/08 — the seven links a run must carry, and the honest limit: `sin`/`cos`/`log` are implementation-approximated in ECMAScript, so the synthetic generator is not bit-portable across engines while the analysis path is |
+| 4 · Astronomy: transit detection | `transit-explorer` | **built 31/08 on synthetic curves, still `Draft`** — BLS, detrend, fold, S/N in pure TS with 36 test cases; five teaching targets (`SIN-1`..`SIN-5`). Real TESS data is not ingested yet |
+| 4b · Dataset ingestion | roadmap | not started — `Domain/Datasets` is still only declared in `ARCHITECTURE.md` |
 | 5 · Chemistry / 3D molecules | roadmap | not started |
 
 **Exactly one module exists**: `orbital-sandbox` (orbital mechanics, canvas + Velocity
@@ -251,7 +253,15 @@ test suite fails *en masse* with a Monolog `UnexpectedValueException` —
 `jsonb` and GIN indexes (ADR 0003). CI provisions a `postgres:16-alpine` service and
 enables `pg_trgm`, `unaccent`, `citext` before running.
 
-**16. Files edited from Windows arrive with CRLF, and PowerShell writes UTF-8 with
+**16. `ParameterPanel` implements only `type: "number"`.** The `spec` schema declares
+`number`, `boolean` and `choice`, and the panel does `if (parameter.type !== "number")
+return null` — so a module declaring a choice parameter gets a control that silently
+does not render. Either implement the missing types in the core when a module actually
+needs them, or keep that input out of `parameters`. Note that data selection (which
+dataset) belongs outside `parameters` anyway, by ADR 0014: which data and how it is
+analysed are different links in the chain.
+
+**17. Files edited from Windows arrive with CRLF, and PowerShell writes UTF-8 with
 BOM.** In `.sh` that is `$'\r': command not found`; in `.env` the `\r` lands inside the
 variable *value* and breaks HTTP headers and `hash_equals` with no useful message.
 **This repo has no `.gitattributes` and no `.editorconfig`** — unlike `hgelo`, there is
