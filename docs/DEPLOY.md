@@ -225,7 +225,9 @@ Deliberadamente fora desta primeira subida, para não inflar o escopo:
   `up -d`. Resolver isso exige réplicas e drenagem de conexão.
 - **Monitoramento e alerta.** Os healthchecks reiniciam container morto, mas
   ninguém é avisado.
-- **CI/CD.** O deploy é disparado à mão por SSH.
+- **Entrega contínua.** A integração já existe: o CI roda os testes e publica as
+  três imagens no GHCR a cada push verde na `main` (§5). O que não existe é o
+  passo seguinte — o deploy continua sendo um `ssh` disparado à mão.
 - **CSP.** Os demais cabeçalhos de segurança estão ativos; o CSP ficou de fora
   porque exige calibrar os estilos inline do Next, e um CSP mal ajustado quebra
   em produção sem quebrar em desenvolvimento.
