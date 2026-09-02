@@ -16,6 +16,19 @@ Uso:
 Com `--periodo`, o script tambem estima quantos eventos cabem em um setor. Essa
 conta e o motivo principal de o script existir — veja ARMADILHA, abaixo.
 
+CUIDADO: ESTA LISTA E OTIMISTA
+
+    O obscore devolve `t_exptime = 120` para alvos cujo unico produto que da
+    para baixar e de 1800 s, vindo de outros pipelines (TESS-SPOC, QLP, TARS,
+    TASOC). Ele responde sobre a observacao, nao sobre o produto SPOC de dois
+    minutos.
+
+    Para escolher alvo a mao isso serve — a lista esta certa sobre onde o alvo
+    foi observado. Para automatizar download, nao serve: no primeiro lote
+    grande, tres de cada quatro tentativas foram jogadas fora por causa disso.
+    O `lote-baixar.py` passou a perguntar ao proprio lightkurve, que responde
+    pelo que existe de fato.
+
 ARMADILHA
     Um setor do TESS dura cerca de 27 dias. Um alvo de periodo longo cabe uma
     ou duas vezes nessa janela, e com um ou dois eventos nao ha periodicidade a

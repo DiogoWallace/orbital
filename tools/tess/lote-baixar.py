@@ -128,27 +128,41 @@ def selecionar(disposicoes: tuple[str, ...], quantos: int, tmag_max: float) -> l
 
 
 def setores_uteis(tic: str) -> list[int]:
-    """Todos os setores com cadencia de 2 minutos, em ordem."""
-    sql = (
-        "select distinct obs_id, t_exptime from ivoa.obscore "
-        "where obs_collection = 'TESS' and dataproduct_type = 'timeseries' "
-        f"and target_name = '{tic}'"
+    """
+    Setores com curva SPOC de 2 minutos, perguntando a quem sabe.
+
+    A versao anterior consultava a tabela `ivoa.obscore` do MAST, que e barata e
+    nao exige instalar nada — e **super-reporta**. Ela devolve `t_exptime = 120`
+    para alvos cujo unico produto disponivel e de 1800 s, vindo de outros
+    pipelines (TESS-SPOC, QLP, TARS, TASOC). No primeiro lote grande isso
+    produziu 670 downloads vazios contra 262 bem-sucedidos: tres de cada quatro
+    tentativas eram trabalho jogado fora.
+
+    O `lightkurve` responde pelo que de fato da para baixar. Custa uma consulta
+    no lugar de uma consulta mais um download frustrado, entao sai mais barato
+    alem de mais certo.
+
+    `resolver-setores.py` continua usando obscore de proposito: ele existe para
+    rodar sem instalar nada, e para escolher alvo a mao a lista otimista serve.
+    """
+    import lightkurve as lk
+
+    busca = lk.search_lightcurve(
+        f"TIC {tic}", mission="TESS", author="SPOC", exptime=120
     )
 
-    por_cadencia: dict[int, set[int]] = defaultdict(set)
+    if len(busca) == 0:
+        return []
 
-    for linha in linhas(tap(sql, MAST)):
-        achado = re.search(r"-s(\d{4})-", linha.get("obs_id") or "")
+    setores: set[int] = set()
 
+    for valor in busca.table["sequence_number"]:
         try:
-            cadencia = int(float(linha.get("t_exptime") or 0))
-        except ValueError:
+            setores.add(int(valor))
+        except (TypeError, ValueError):
             continue
 
-        if achado:
-            por_cadencia[cadencia].add(int(achado.group(1)))
-
-    return sorted(por_cadencia.get(120, []))
+    return sorted(setores)
 
 
 def baixar(
