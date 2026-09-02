@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\CommentReportController;
+use App\Http\Controllers\Api\V1\DatasetController;
 use App\Http\Controllers\Api\V1\DisciplineController;
 use App\Http\Controllers\Api\V1\LikeController;
 use App\Http\Controllers\Api\V1\ModerateCommentController;
@@ -86,6 +87,13 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('posts', [PostController::class, 'index']);
         Route::get('posts/{post}', [PostController::class, 'show']);
+
+        // Séries observacionais. A leitura é pública porque o dado de origem
+        // é público; a procedência viaja junto (ADR 0014). Os pontos saem por
+        // rota própria para que listar o catálogo não arraste as séries.
+        Route::get('datasets', [DatasetController::class, 'index']);
+        Route::get('datasets/{dataset}', [DatasetController::class, 'show']);
+        Route::get('datasets/{dataset}/series', [DatasetController::class, 'series']);
 
         // O fio de comentários é público, como o post que o hospeda.
         Route::get('posts/{post}/comments', [CommentController::class, 'index']);

@@ -77,7 +77,7 @@ gets built.
 | 3 · 🚀 Rocket live simulation | same module | **done 31/08** — vertical ascent in `simulation/ascent.ts`, 17 Vitest cases. The `spec` carries `hotspots` **and** `parameters`, and the selected system shows the readings that belong to it |
 | — · Reproducibility | ADR **0014** | decided 31/08 — the seven links a run must carry, and the honest limit: `sin`/`cos`/`log` are implementation-approximated in ECMAScript, so the synthetic generator is not bit-portable across engines while the analysis path is |
 | 4 · Astronomy: transit detection | `transit-explorer` | **built 31/08 on synthetic curves, still `Draft`** — BLS, detrend, fold, S/N in pure TS with 36 test cases; five teaching targets (`SIN-1`..`SIN-5`). Real TESS data is not ingested yet |
-| 4b · Dataset ingestion | roadmap | not started — `Domain/Datasets` is still only declared in `ARCHITECTURE.md` |
+| 4b · Dataset ingestion | `Domain/Datasets` | **built 31/08** — `Dataset` + `DatasetSeries`, `IngestLightCurve`, `datasets:import`, three public routes, 14 tests. Provenance fields are mandatory per ADR 0014; no real curve ingested yet |
 | 5 · Chemistry / 3D molecules | roadmap | not started |
 
 **Exactly one module exists**: `orbital-sandbox` (orbital mechanics, canvas + Velocity

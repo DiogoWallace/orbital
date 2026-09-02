@@ -33,6 +33,7 @@ arch('actions expõem um único ponto de entrada')
         'App\Domain\Identity\Actions',
         'App\Domain\Simulation\Actions',
         'App\Domain\Community\Actions',
+        'App\Domain\Datasets\Actions',
     ])
     ->toHaveMethod('execute');
 
@@ -43,6 +44,7 @@ arch('a taxonomia é modelada com enums, não com strings soltas')
         'App\Domain\Identity\Enums',
         'App\Domain\Editorial\Enums',
         'App\Domain\Community\Enums',
+        'App\Domain\Datasets\Enums',
     ])
     ->toBeEnums();
 
