@@ -483,6 +483,68 @@ class ModuleSeeder extends Seeder
                     'yLabel' => 'Fluxo relativo',
                 ],
             ],
+
+            // O que cada série observacional ensina, e o valor publicado contra
+            // o qual comparar. Chave desconhecida para o núcleo (ADR 0006), lida
+            // pelo próprio módulo.
+            //
+            // A lição é conteúdo do módulo, não do dataset: a mesma curva
+            // ensinaria outra coisa num módulo de variabilidade estelar. O
+            // dataset guarda procedência; o significado mora aqui.
+            //
+            // `published` vem da tabela TOI do NASA Exoplanet Archive, consultada
+            // em 31/08/2026. Nenhum número aqui foi estimado.
+            'datasets' => self::transitDatasetNotes(),
+        ];
+    }
+
+    /**
+     * Notas editoriais das cinco séries reais.
+     *
+     * Os valores recuperados citados nos textos foram medidos com os parâmetros
+     * padrão do módulo. Mudar a janela de achatamento muda os números — o que é
+     * parte da lição, não defeito dela.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function transitDatasetNotes(): array
+    {
+        return [
+            [
+                'slug' => 'tess-tic256364928-s54',
+                'label' => 'HD 189733 b',
+                'brief' => 'Júpiter quente, um dos exoplanetas mais estudados que existem. O trânsito é fundo e repetido: o caso em que o método acha sem esforço.',
+                'lesson' => "Período recuperado com erro abaixo de 0,05% do publicado, e relação sinal/ruído nas centenas. É a referência de como um achado inequívoco se parece.\n\nRepare que a profundidade medida sai **abaixo** da publicada. Não é erro: a caixa do BLS é mais larga que o trânsito real e engole a entrada e a saída, onde o brilho ainda não caiu tudo. O método mede um retângulo; o céu não faz retângulos.",
+                'published' => ['period' => 2.2186, 'depthPercent' => 2.585, 'durationHours' => 1.82],
+            ],
+            [
+                'slug' => 'tess-tic261136679-s01',
+                'label' => 'π Mensae c',
+                'brief' => 'Super-Terra confirmada, e este é o setor 1 — o primeiro que o TESS observou, e o dado em que ela foi descoberta.',
+                'lesson' => "O caso mais importante dos cinco, e o mais desconfortável. O período volta certo, com erro de 0,3% — mas o pico do periodograma é o **menor de todas as cinco séries**, incluindo a estrela sem nada catalogado e a pulsante.\n\nOu seja: se você ordenar os alvos por altura de pico ou por relação sinal/ruído, o único planeta pequeno de verdade fica em último. Nenhum número sozinho o distingue. O que o distingue é a curva dobrada: uma queda curta, de fundo plano, que se repete na mesma fase. Olhe o gráfico, não o ranking.",
+                'published' => ['period' => 6.2678, 'depthPercent' => 0.032, 'durationHours' => 2.79],
+            ],
+            [
+                'slug' => 'tess-tic285524410-s61',
+                'label' => 'TOI 2848.01 — binária eclipsante',
+                'brief' => 'Classificada como falso positivo. As quedas são periódicas, fundas e convincentes — e não são planeta.',
+                'lesson' => "O pico mais alto das cinco séries, com folga: cerca de dez vezes o do Júpiter quente e mais de mil vezes o da super-Terra. E é o alvo que **não** tem planeta.\n\nProfundidade dessa ordem exigiria um companheiro do tamanho de uma estrela. Dobre a curva e procure a fase 0,5: é ali que a companheira passa por trás da principal, num mergulho mais raso, e é essa assinatura que denuncia a binária. O BLS acertou o período e não tem opinião sobre o que ele significa.",
+                'published' => ['period' => 3.0244, 'depthPercent' => 26.702, 'durationHours' => 5.37],
+            ],
+            [
+                'slug' => 'tess-tic7697330-s04',
+                'label' => 'HD 28014 — estrela pulsante',
+                'brief' => 'Variável do tipo gamma Doradus. Não há planeta aqui: a estrela pulsa sozinha, com período dentro da faixa que a busca varre.',
+                'lesson' => "Periodicidade real, trânsito nenhum — e o pico resultante é dezenas de vezes maior que o da super-Terra confirmada.\n\nA variação é suave e ocupa o ciclo inteiro, em vez de uma queda curta num pedaço dele. É isso que a curva dobrada mostra e o periodograma esconde. Vale encurtar a janela de achatamento e ver o pico ceder: o parâmetro do método muda a conclusão, e saber disso é metade do trabalho.",
+                'published' => null,
+            ],
+            [
+                'slug' => 'tess-tic270950967-s14',
+                'label' => 'HD 185415 — sem nada catalogado',
+                'brief' => 'Nenhum objeto de interesse registrado para esta estrela, e nenhum tipo variável atribuído a ela. O que não é o mesmo que uma linha reta.',
+                'lesson' => "Esta série entrou no módulo como o caso de controle — a curva onde não deveria haver nada. E não é o que o dado mostra: a busca devolve estrutura, com pico acima do da super-Terra confirmada.\n\nProvavelmente é resíduo do instrumento sobrevivendo ao achatamento, num período longo demais para caber bem no setor. Provavelmente. Não foi verificado, e é por isso que a lição mudou em vez de o alvo ser trocado.\n\nA conclusão útil é essa: **não existe curva vazia**. Ausência de catalogação é ausência de catalogação, não ausência de sinal. Um método que precise de uma linha reta como referência não tem referência nenhuma no céu real — o que se compara é a forma do que aparece, e não a altura de um número.",
+                'published' => null,
+            ],
         ];
     }
 

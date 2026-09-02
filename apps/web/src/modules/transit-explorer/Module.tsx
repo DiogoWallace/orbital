@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { z } from "zod";
 import { LineChart } from "@/components/data/LineChart";
 import { ParameterPanel } from "@/components/lab/ParameterPanel";
 import { ReadoutGrid } from "@/components/lab/ReadoutGrid";
@@ -45,6 +46,48 @@ type Selecao =
   | { tipo: "dataset"; chave: string }
   | { tipo: "referencia"; chave: string };
 
+/**
+ * Nota editorial de uma série observacional, vinda do `spec`.
+ *
+ * O que a curva ensina é conteúdo do módulo, não do dataset: a mesma série
+ * ensinaria outra coisa num módulo de variabilidade estelar. O dataset guarda
+ * procedência; o significado mora no `spec`, ligado pelo slug.
+ *
+ * Nota sem série, ou série sem nota, simplesmente não aparece — mesma
+ * tolerância que o registry tem com módulo sem componente.
+ */
+const notaSchema = z.object({
+  slug: z.string(),
+  label: z.string(),
+  brief: z.string().optional(),
+  lesson: z.string().optional(),
+  published: z
+    .object({
+      period: z.number(),
+      depthPercent: z.number(),
+      durationHours: z.number(),
+    })
+    .nullable()
+    .optional(),
+});
+
+type Nota = z.infer<typeof notaSchema>;
+
+function lerNotas(spec: unknown): Record<string, Nota> {
+  const bruto = (spec as { datasets?: unknown })?.datasets;
+  const resultado = z.array(notaSchema).safeParse(bruto ?? []);
+
+  if (!resultado.success) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[orbital] notas de dataset inválidas:", resultado.error.issues);
+    }
+
+    return {};
+  }
+
+  return Object.fromEntries(resultado.data.map((nota) => [nota.slug, nota]));
+}
+
 export default function TransitExplorerModule({ module, spec }: ModuleComponentProps) {
   const initialValues = useMemo(() => defaultValues(spec), [spec]);
 
@@ -81,6 +124,9 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
   );
 
   const referencia = selecao.tipo === "referencia" ? TARGET_BY_KEY[selecao.chave] : null;
+
+  const notas = useMemo(() => lerNotas(spec), [spec]);
+  const nota = dataset ? notas[dataset.slug] : undefined;
 
   // --- Catálogo de observações ---------------------------------------------
   useEffect(() => {
@@ -260,7 +306,7 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
                 key={item.slug}
                 ativo={selecao.tipo === "dataset" && selecao.chave === item.slug}
                 codigo={item.provenance.missionLabel}
-                rotulo={item.title}
+                rotulo={notas[item.slug]?.label ?? item.title}
                 onClick={() => setSelecao({ tipo: "dataset", chave: item.slug })}
               />
             ))}
@@ -279,13 +325,13 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
           </Grupo>
         </div>
 
-        {dataset ? <Procedencia dataset={dataset} /> : null}
-
-        {referencia ? (
+        {nota?.brief || referencia ? (
           <p className="border-t border-[var(--color-line)] px-5 py-3.5 text-[13px] leading-relaxed text-[var(--color-neutral-300)]">
-            {referencia.brief}
+            {nota?.brief ?? referencia?.brief}
           </p>
         ) : null}
+
+        {dataset ? <Procedencia dataset={dataset} /> : null}
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -326,16 +372,31 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
               <Panel>
                 <PanelHeader title="Leitura do resultado" />
                 <div className="flex flex-col gap-3.5 px-5 py-5 text-[15px] leading-relaxed">
-                  {referencia ? (
-                    <p className="text-[var(--color-neutral-300)]">{referencia.lesson}</p>
-                  ) : (
+                  {nota?.published && result?.candidate ? (
+                    <Comparacao
+                      publicado={nota.published}
+                      periodo={result.candidate.period}
+                      profundidade={result.candidate.depth * 100}
+                      duracao={result.candidate.durationDays * 24}
+                    />
+                  ) : null}
+
+                  {(nota?.lesson ?? referencia?.lesson ?? "")
+                    .split("\n\n")
+                    .filter(Boolean)
+                    .map((paragrafo, indice) => (
+                      <p key={indice} className="text-[var(--color-neutral-300)]">
+                        {paragrafo}
+                      </p>
+                    ))}
+
+                  {!nota && !referencia ? (
                     <p className="text-[var(--color-neutral-300)]">
                       Esta é uma observação real: ninguém injetou nada nela, e o
                       valor de referência para comparar vem da literatura, não
-                      deste módulo. Confira período e profundidade contra o
-                      catálogo antes de concluir qualquer coisa.
+                      deste módulo.
                     </p>
-                  )}
+                  ) : null}
 
                   <p className="rule-top pt-3.5 text-[13px] text-[var(--color-neutral-500)]">
                     Um pico no periodograma e uma relação sinal/ruído alta indicam
@@ -452,6 +513,67 @@ function Alvo({
       </span>
       {rotulo}
     </button>
+  );
+}
+
+/**
+ * O recuperado ao lado do publicado.
+ *
+ * É esta tabela que separa exercício de brinquedo: sem um valor independente
+ * para comparar, o número que o método devolve não pode ser julgado. A fonte é
+ * a tabela TOI do NASA Exoplanet Archive, e ela viaja no `spec` justamente
+ * para que a comparação não dependa de o leitor ir procurar.
+ *
+ * O erro relativo aparece só no período. Profundidade e duração saem
+ * sistematicamente por baixo, porque a caixa do BLS é mais larga que o trânsito
+ * — exibir isso como "erro" sugeriria defeito onde há comportamento conhecido.
+ */
+function Comparacao({
+  publicado,
+  periodo,
+  profundidade,
+  duracao,
+}: {
+  publicado: { period: number; depthPercent: number; durationHours: number };
+  periodo: number;
+  profundidade: number;
+  duracao: number;
+}) {
+  const erro = Math.abs(periodo - publicado.period) / publicado.period;
+
+  const linhas: [string, string, string][] = [
+    ["Período", `${publicado.period.toFixed(4)} d`, `${periodo.toFixed(4)} d`],
+    ["Profundidade", `${publicado.depthPercent.toFixed(3)} %`, `${profundidade.toFixed(3)} %`],
+    ["Duração", `${publicado.durationHours.toFixed(2)} h`, `${duracao.toFixed(2)} h`],
+  ];
+
+  return (
+    <div className="rounded-[var(--radius-control)] border border-[var(--color-line)] px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h6 className="text-[var(--color-neutral-500)]">Publicado × recuperado</h6>
+        <span className="tabular text-[11px] text-[var(--color-accent-300)]">
+          erro no período: {(erro * 100).toFixed(2)}%
+        </span>
+      </div>
+
+      <table className="mt-2.5 w-full text-[13px]">
+        <tbody>
+          {linhas.map(([rotulo, publicadoTexto, medido]) => (
+            <tr key={rotulo}>
+              <td className="py-1 text-[var(--color-neutral-500)]">{rotulo}</td>
+              <td className="tabular py-1 text-right text-[var(--color-neutral-400)]">
+                {publicadoTexto}
+              </td>
+              <td className="tabular py-1 pl-4 text-right text-[var(--color-ink)]">{medido}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p className="mt-2 text-[11px] text-[var(--color-neutral-600)]">
+        Valores publicados: NASA Exoplanet Archive, tabela TOI.
+      </p>
+    </div>
   );
 }
 

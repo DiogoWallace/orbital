@@ -107,7 +107,7 @@ export const TARGETS: TargetCase[] = [
     label: "Nada",
     brief: "Ruído fotométrico e mais nada. Nenhum sinal foi injetado nesta curva.",
     lesson:
-      "O BLS devolve um período mesmo aqui — ele é uma busca, não um juiz, e sempre encontra a melhor caixa disponível. Este é o caso que calibra o olho: guarde a altura do pico e a relação sinal/ruído daqui, porque é contra elas que os outros quatro precisam ser comparados. Um método que nunca devolve “nada” não serve para descobrir coisa alguma.",
+      "O BLS devolve um período mesmo aqui — ele é uma busca, não um juiz, e sempre encontra a melhor caixa disponível. Um método que nunca devolve “nada” não serve para descobrir coisa alguma.\n\nMas cuidado com a conclusão fácil. Esta curva é sintética e o vazio dela é real, porque fomos nós que não injetamos nada. **No céu não existe curva assim.** A série observacional equivalente deste módulo — uma estrela sem nenhum objeto de interesse catalogado — devolve pico maior que o de uma super-Terra confirmada. Use este caso para entender o que o método faz sem sinal, e não como régua para julgar dado real.",
     options: {
       period: null,
       noise: 0.0012,
