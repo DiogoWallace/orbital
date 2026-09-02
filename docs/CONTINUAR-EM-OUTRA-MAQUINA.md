@@ -43,15 +43,18 @@ volta a aparecer.
 ```bash
 mkdir -p .git/hooks
 cat > .git/hooks/strip-ai-sig.py <<'PY'
-import re
-import sys
+import re, sys
 
-texto = sys.stdin.read()
-padrao = re.compile(
-    r"^\s*(Co-Authored-By:.*Claude.*|🤖 Generated with .*Claude Code.*)\s*$",
-    re.IGNORECASE | re.MULTILINE,
-)
-sys.stdout.write(padrao.sub("", texto).rstrip() + "\n")
+PATTERNS = [
+    r"^Co-[Aa]uthored-[Bb]y:\s*Claude\b",
+    r"^Co-[Aa]uthored-[Bb]y:.*@anthropic\.com",
+    r"Generated with \[?Claude Code\]?",
+    r"^\s*🤖",
+]
+
+msg = sys.stdin.read()
+kept = [l for l in msg.split("\n") if not any(re.search(p, l) for p in PATTERNS)]
+sys.stdout.write("\n".join(kept).rstrip() + "\n")
 PY
 
 cat > .git/hooks/commit-msg <<'SH'
