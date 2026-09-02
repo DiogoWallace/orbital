@@ -20,13 +20,19 @@ módulo. Não generalizar nada dissolve a plataforma em projetos soltos.
 ## 2. Topologia
 
 ```
-scilab/orbital
+orbital/
 ├── apps/
 │   ├── api/          Laravel 13  → REST /api/v1
 │   └── web/          Next.js 16  → RSC + BFF
 ├── packages/
-│   └── contracts/    tipos TS gerados do OpenAPI
+│   └── contracts/    tipos TS gerados do OpenAPI — VAZIO: a geração não existe,
+│                     e os tipos do frontend são escritos à mão em lib/api/types.ts
+├── tools/            fora da aplicação (o .dockerignore exclui)
+│   ├── tess/         ingestão de curvas de luz do TESS
+│   └── brenda/       o classificador, e as medições
 ├── docker/           php-fpm 8.4 · nginx · postgres 16 · redis
+├── deploy/           provisionamento e deploy da VPS
+├── .githooks/        commit-msg versionado (ver CONVENCOES-DE-COMMIT.md)
 └── docs/adr/         decisões arquiteturais registradas
 ```
 
@@ -53,9 +59,13 @@ app/
 │   ├── Datasets/            fontes externas, ingestão, séries
 │   └── Identity/            usuários, papéis, políticas
 ├── Http/Controllers/Api/V1  controllers finos
-├── Modules/<Nome>/          código específico de um módulo (opcional)
+├── Console/                 comandos (datasets:import)
+├── Notifications/           e-mail transacional
 ├── Support/
 └── Providers/
+
+# previsto e nunca criado:
+# └── Modules/<Nome>/        compute de um módulo no servidor (ADR 0007)
 ```
 
 **Fluxo de uma requisição:**
@@ -108,7 +118,7 @@ testável no Vitest, determinística e portável para Web Worker sem tocar na UI
 |---|---|---|
 | Dados | linha em `modules` (metadados + `spec` jsonb) | sim |
 | Experiência | `apps/web/src/modules/<key>/` | sim |
-| Compute | `apps/api/app/Modules/<Key>/` | não |
+| Compute | `apps/api/app/Modules/<Key>/` | não — **e nunca foi criada**: o contrato `SimulationEngine` existe sem nenhuma implementação, de propósito (ADR 0007) |
 
 As três se encontram por uma chave: **`component_key`**.
 
@@ -133,24 +143,45 @@ ocorrência é como se cria a abstração errada.
 
 ## 7. Tecnologias e por que cada uma
 
+Esta seção estava misturando o que roda hoje com o que foi escolhido no papel, e
+lida assim virava promessa: quem fosse escrever código assumiria ter à mão
+biblioteca que nunca foi instalada. Separado, e conferido contra o
+`package.json` e o `src/`.
+
+### Em uso
+
 | Tecnologia | Onde | Justificativa |
 |---|---|---|
 | SVG + Motion | anatomia do foguete, diagramas | vetorial, cada peça é um nó do DOM → hotspot clicável, focável e acessível de graça |
-| Canvas 2D | fluxo de combustível, gases, partículas | milhares de partículas a 60 fps; SVG morre nessa contagem de nós |
-| React Three Fiber (WebGL) | sistema solar, moléculas | só quando a 3ª dimensão carrega informação; entra por `import()` dinâmico |
-| SVG próprio (`components/data/LineChart`) | gráficos do MVP | uma linha com eixos e grade cabe em ~100 linhas; adicionar biblioteca de charting antes de precisar de escala log, barra de erro ou brush seria peso sem retorno |
-| visx | *quando* os gráficos exigirem mais | D3 modular sob React — entra dentro de `components/data/`, nunca dentro de um módulo |
-| uPlot | *quando* houver séries realmente grandes | centenas de milhares de pontos em canvas |
+| Canvas 2D | órbitas, partículas | milhares de pontos a 60 fps; SVG morre nessa contagem de nós |
+| SVG próprio (`components/data/LineChart`) | todos os gráficos | uma linha com eixos e grade cabe em ~100 linhas; biblioteca de charting antes de precisar de escala log, barra de erro ou brush seria peso sem retorno |
 | KaTeX | fórmulas | plataforma científica sem LaTeX não é séria |
-| Zustand | estado de simulação | atualiza a 60 fps fora do ciclo de render do React |
-| TanStack Query | estado de servidor | cache, revalidação, estados padronizados |
-| Tailwind v4 + Radix | design system | tokens em CSS vars + acessibilidade pronta |
-| Zod | validação | um schema serve para form, para `spec` e para o tipo TS |
-| Pest / Vitest / Playwright | testes | API / física pura / fluxos críticos |
+| react-markdown (+ remark/rehype) | corpo dos posts e das seções | o Markdown mora no banco, e a renderização é do lado do servidor |
+| Zod | validação | um schema serve para o `spec`, para o form e para o tipo TS |
+| Tailwind v4 | design system | tokens em CSS vars; os componentes são CSS próprio (Nocturne), sem biblioteca de UI |
+| Pest / Vitest | testes | API / física pura |
 
-**Deliberadamente fora agora:** GraphQL, microserviços, Kubernetes,
-Elasticsearch, WebSockets, state machines. Cada um entra quando um problema real
-aparecer.
+**Zustand está instalado e não é usado em lugar nenhum do `src/`.** Entrou
+pensando em estado de simulação a 60 fps fora do ciclo de render, e o
+`useSimulationLoop` resolveu sem ele. Ou aparece um uso, ou sai do
+`package.json` — dependência sem chamador é dívida silenciosa.
+
+### Escolhidas, ainda não instaladas
+
+Nenhuma destas está no `package.json`. Estão aqui como decisão tomada, para não
+ser redecidida do zero — e cada uma entra quando o problema aparecer, não antes.
+
+| Tecnologia | Entra quando | Justificativa |
+|---|---|---|
+| visx | os gráficos exigirem mais | D3 modular sob React — dentro de `components/data/`, nunca dentro de um módulo |
+| uPlot | houver séries realmente grandes | centenas de milhares de pontos em canvas |
+| React Three Fiber (WebGL) | a 3ª dimensão carregar informação | moléculas, sistema solar; entra por `import()` dinâmico |
+| TanStack Query | o estado de servidor no cliente doer | hoje quase tudo é RSC, e o pouco que é cliente passa pelo BFF |
+| Radix | precisar de diálogo, menu ou combobox de verdade | acessibilidade pronta; hoje não há nenhum desses |
+| Playwright | houver fluxo crítico que valha exercitar de ponta a ponta | Pest e Vitest cobrem o que existe |
+
+**Deliberadamente fora, sem data:** GraphQL, microserviços, Kubernetes,
+Elasticsearch, WebSockets, state machines.
 
 ## 8. Estética
 
