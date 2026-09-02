@@ -35,6 +35,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# Texto de reconhecimento exigido por missao, copiado palavra por palavra de
+#
+#     https://archive.stsci.edu/publishing/mission-acknowledgements
+#     https://archive.stsci.edu/footer/data-attributions/mission-acknowledgements
+#
+# conferido nas duas paginas em 01/09/2026. Missao sem entrada aqui continua
+# saindo com PREENCHER: e melhor um dataset que se declara nao-citavel do que um
+# com uma frase de citacao que ninguem verificou.
+CITACOES = {
+    "TESS": (
+        "This paper includes data collected with the TESS mission, obtained from "
+        "the MAST data archive at the Space Telescope Science Institute (STScI). "
+        "Funding for US Institutions for the TESS mission is provided by the NASA "
+        "Explorer Program. STScI is operated by the Association of Universities "
+        "for Research in Astronomy, Inc., under NASA contract NAS5-26555."
+    ),
+}
+
+
 def somar_arquivo(caminho: Path) -> str:
     """SHA-256 do FITS de origem.
 
@@ -158,10 +177,10 @@ def main() -> None:
             "sha256": somar_arquivo(arquivo_local) if arquivo_local and arquivo_local.exists() else None,
             "arquivo": "MAST — Mikulski Archive for Space Telescopes",
             "obtidoEm": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            # Preenchido a mao depois de ler os termos vigentes do MAST. Deixar
-            # explicito como pendencia e melhor do que inventar uma frase de
-            # citacao que ninguem conferiu.
-            "citacao": "PREENCHER: ver termos de reconhecimento do MAST/TESS",
+            "citacao": CITACOES.get(
+                "TESS",
+                "PREENCHER: ver termos de reconhecimento do arquivo de origem",
+            ),
         },
         "rotulo": args.rotulo,
         "unidades": {"tempo": "dias desde o primeiro ponto", "fluxo": "relativo, normalizado"},
