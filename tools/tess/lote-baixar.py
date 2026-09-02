@@ -127,8 +127,8 @@ def selecionar(disposicoes: tuple[str, ...], quantos: int, tmag_max: float) -> l
     return saida
 
 
-def setor_util(tic: str) -> int | None:
-    """O menor setor com cadencia de 2 minutos, ou None se nao houver."""
+def setores_uteis(tic: str) -> list[int]:
+    """Todos os setores com cadencia de 2 minutos, em ordem."""
     sql = (
         "select distinct obs_id, t_exptime from ivoa.obscore "
         "where obs_collection = 'TESS' and dataproduct_type = 'timeseries' "
@@ -148,37 +148,67 @@ def setor_util(tic: str) -> int | None:
         if achado:
             por_cadencia[cadencia].add(int(achado.group(1)))
 
-    setores = sorted(por_cadencia.get(120, []))
-
-    return setores[0] if setores else None
+    return sorted(por_cadencia.get(120, []))
 
 
 def baixar(
-    tic: str, setor: int, destino: Path, citacao: str, mascara: str = "default"
+    tic: str, setores: list[int], destino: Path, citacao: str, mascara: str = "default"
 ) -> dict | None:
+    """
+    Baixa e emenda varios setores do mesmo alvo.
+
+    Cada setor e normalizado **sozinho** antes da emenda. Setores diferentes tem
+    nivel de base e sistematica proprios, e normalizar o conjunto depois de
+    juntar deixaria o degrau entre eles dentro do dado — degrau que a busca
+    leria como estrutura.
+
+    O tempo preserva os intervalos reais entre setores. Fechar o buraco
+    aproximaria eventos separados por semanas e destruiria a fase.
+    """
     import lightkurve as lk
 
-    busca = lk.search_lightcurve(
-        f"TIC {tic}", mission="TESS", author="SPOC", sector=setor, exptime=120
-    )
+    trechos: list[tuple[list[float], list[float]]] = []
+    usados: list[int] = []
 
-    if len(busca) == 0:
+    for setor in setores:
+        busca = lk.search_lightcurve(
+            f"TIC {tic}", mission="TESS", author="SPOC", sector=setor, exptime=120
+        )
+
+        if len(busca) == 0:
+            continue
+
+        curva = busca[0].download(quality_bitmask=mascara, flux_column="pdcsap_flux")
+        normalizada = curva.remove_nans().normalize()
+
+        pares = [
+            (float(t), float(f))
+            for t, f in zip(normalizada.time.value, normalizada.flux.value)
+            if t == t and f == f
+        ]
+
+        if not pares:
+            continue
+
+        pares.sort()
+        trechos.append(([t for t, _ in pares], [f for _, f in pares]))
+        usados.append(setor)
+
+    if not trechos:
         return None
 
-    curva = busca[0].download(quality_bitmask=mascara, flux_column="pdcsap_flux")
-    normalizada = curva.remove_nans().normalize()
+    tempo: list[float] = []
+    fluxo: list[float] = []
 
-    pares = [
-        (float(t), float(f))
-        for t, f in zip(normalizada.time.value, normalizada.flux.value)
-        if t == t and f == f  # descarta NaN sem importar math
-    ]
-    pares.sort()
+    for ts, fs in trechos:
+        tempo.extend(ts)
+        fluxo.extend(fs)
 
-    if not pares:
-        return None
+    ordem = sorted(range(len(tempo)), key=lambda i: tempo[i])
+    tempo = [tempo[i] for i in ordem]
+    fluxo = [fluxo[i] for i in ordem]
 
-    t0 = pares[0][0]
+    t0 = tempo[0]
 
     return {
         "schema": "orbital.lightcurve/1",
@@ -189,25 +219,18 @@ def baixar(
             "produto": "PDCSAP_FLUX",
             "alvo": f"TIC {tic}",
             "tic": tic,
-            "setor": setor,
+            "setor": usados[0],
+            "setores": usados,
             "cadenciaSegundos": 120,
-            "arquivo": "MAST — Mikulski Archive for Space Telescopes",
+            "arquivo": "MAST \u2014 Mikulski Archive for Space Telescopes",
             "citacao": citacao,
-            # A mascara de qualidade e decisao de processamento, nao ajuste de
-            # conveniencia: ela descarta cadencias e muda o dado. Duas curvas do
-            # mesmo FITS com mascaras diferentes SAO dados diferentes, e sem
-            # este campo nada distingue uma da outra depois (ADR 0014).
-            #
-            # `hardest` descarta cadencia marcada por qualquer flag e chega a
-            # jogar fora 30-38% da serie; `default` e o conjunto que o proprio
-            # pipeline SPOC recomenda. A S/R de um transito cresce com a raiz do
-            # numero de pontos dentro dele, entao mascara agressiva custa
-            # deteccao justamente no caso raso.
+            # A mascara descarta cadencias e muda o dado; sem registro, duas
+            # curvas do mesmo FITS ficam indistinguiveis (ADR 0014).
             "mascaraQualidade": mascara,
         },
-        "pontos": len(pares),
-        "tempo": [round(t - t0, 8) for t, _ in pares],
-        "fluxo": [round(f, 8) for _, f in pares],
+        "pontos": len(tempo),
+        "tempo": [round(t - t0, 8) for t in tempo],
+        "fluxo": [round(f, 8) for f in fluxo],
         "tempoInicialBtjd": round(t0, 8),
     }
 
@@ -218,6 +241,12 @@ def main() -> None:
     parser.add_argument("--saida", required=True)
     parser.add_argument("--tmag-max", type=float, default=12.0)
     parser.add_argument("--pausa", type=float, default=1.0, help="Segundos entre downloads")
+    parser.add_argument(
+        "--setores",
+        type=int,
+        default=1,
+        help="Quantos setores emendar por alvo. Mais setores = mais transitos por alvo.",
+    )
     parser.add_argument(
         "--mascara",
         default="default",
@@ -268,16 +297,20 @@ def main() -> None:
             tic = linha["tid"].strip()
 
             try:
-                setor = setor_util(tic)
+                disponiveis = setores_uteis(tic)
             except Exception as erro:  # noqa: BLE001
                 falhas.append({"tic": tic, "etapa": "setor", "motivo": str(erro)[:120]})
                 continue
 
-            if setor is None:
+            if not disponiveis:
                 falhas.append({"tic": tic, "etapa": "setor", "motivo": "sem cadencia de 2 min"})
                 continue
 
-            arquivo = curvas / f"tic{tic}-s{setor:02d}.json"
+            escolhidos = disponiveis[: args.setores]
+            setor = escolhidos[0]
+
+            sufixo = f"-m{len(escolhidos)}" if len(escolhidos) > 1 else ""
+            arquivo = curvas / f"tic{tic}-s{setor:02d}{sufixo}.json"
 
             registro = {
                 "tic": tic,
@@ -285,6 +318,8 @@ def main() -> None:
                 "rotulo": rotulo,
                 "disposicao": linha.get("tfopwg_disp"),
                 "setor": setor,
+                "setores_pedidos": len(escolhidos),
+                "setores_disponiveis": len(disponiveis),
                 "periodo_publicado": linha.get("pl_orbper"),
                 "duracao_publicada_h": linha.get("pl_trandurh"),
                 "profundidade_publicada_ppm": linha.get("pl_trandep"),
@@ -305,7 +340,7 @@ def main() -> None:
                 continue
 
             try:
-                documento = baixar(tic, setor, arquivo, citacao, args.mascara)
+                documento = baixar(tic, escolhidos, arquivo, citacao, args.mascara)
             except Exception as erro:  # noqa: BLE001
                 falhas.append({"tic": tic, "etapa": "download", "motivo": str(erro)[:120]})
                 print(f"  {tic} s{setor:02d} — FALHOU: {str(erro)[:60]}")
@@ -319,7 +354,10 @@ def main() -> None:
             manifesto.append(registro)
             aceitos += 1
 
-            print(f"  {tic} s{setor:02d} — {documento['pontos']} pontos")
+            print(
+                f"  {tic} s{setor:02d} — {documento['pontos']} pontos, "
+                f"{len(documento['procedencia']['setores'])} de {len(disponiveis)} setores"
+            )
             time.sleep(args.pausa)
 
         print(f"  {aceitos} de {args.quantos} aceitos")

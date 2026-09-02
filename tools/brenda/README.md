@@ -121,6 +121,58 @@ o gargalo é o tamanho da amostra, não a escolha de features.**
 Parar de adicionar feature é a conclusão. A medição já disse duas vezes onde
 está o problema.
 
+## Multi-setor — 02/09/2026: a hipótese não se confirmou
+
+A conclusão dos dois treinos era "mais dado antes de mais modelo", e o caminho
+concreto era emendar setores: hoje se usa um por alvo, e vários têm dezenas
+disponíveis.
+
+Foi implementado — download multi-setor com normalização por setor, achatamento
+que respeita buracos, busca em dois estágios. E **não funcionou para o caso que
+motivava tudo.**
+
+Teste em π Mensae c, o trânsito raso de 321 ppm:
+
+| | pontos | baseline | período recuperado | erro |
+|---|---|---|---|---|
+| 1 setor | 18.264 | 27,9 d | 6,27417 | **0,102%** |
+| 4 setores | 60.753 | 298,6 d | 8,12444 | **29,6%** |
+
+Triplicar os pontos e decuplicar a baseline **piorou** a detecção.
+
+### O diagnóstico, que refutou a explicação óbvia
+
+A suspeita natural era resolução: com 298 dias há ~48 ciclos, e um erro de
+período vira deriva de fase acumulada. A grade do lote tem passo de ~0,05 d
+perto de 6 d, longe do que a baseline exige.
+
+Só que buscar com grade densa e estreita em volta do valor publicado devolveu
+período 6,32 com pico 0,049 × 10⁻³ — **mais fraco** que o pico espúrio em 8,12,
+que vale 0,054. Procurando no lugar certo, com resolução de sobra, o sinal
+verdadeiro perde.
+
+Não é resolução. **É que a emenda soma sistemática junto com sinal.** Cada setor
+traz sua própria deriva instrumental; o achatamento por segmento reduz, não
+elimina; e o que sobra, na casa de 0,1%, domina um trânsito de 0,03%. A curva
+achatada tem mínimo em 0,992 — uma queda de 0,8%, vinte e cinco vezes mais funda
+que o trânsito procurado.
+
+### O que fica
+
+Emendar setores **não é ganho automático**, e essa era a premissa. Para sinal
+raso, mais baseline pode custar mais do que rende, e o ganho de S/R é aparente:
+a S/R subiu de 27,9 para 74,4 medindo um sinal que não é o planeta.
+
+O caminho não é mais grade nem mais setores: é **achatamento melhor antes da
+emenda** — remover a sistemática de cada setor com um método que a descreva, e
+não só uma mediana móvel. Enquanto isso não existir, um setor por alvo continua
+sendo a escolha honesta.
+
+O que sobrou de aproveitável, e é real: o refino em dois estágios melhorou a
+precisão de um setor de 0,35% para 0,102%, e o achatamento passou a respeitar
+buracos — que a curva de um setor só também tem, por causa da pausa de downlink
+no meio.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que

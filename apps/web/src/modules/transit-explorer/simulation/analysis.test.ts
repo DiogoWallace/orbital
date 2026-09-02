@@ -7,7 +7,13 @@ import {
   signalToNoise,
   transitShapeRatio,
 } from "./analysis";
-import { detrend, medianInPlace, movingMedian, windowPointsFor } from "./detrend";
+import {
+  detrend,
+  medianInPlace,
+  movingMedian,
+  segmentStarts,
+  windowPointsFor,
+} from "./detrend";
 import { generateLightCurve, randomSource, transitShape } from "./synthetic";
 
 const CURTA = { baselineDays: 6, cadenceMinutes: 10 } as const;
@@ -189,6 +195,93 @@ describe("achatamento", () => {
 
     // Meio dia a cada dez minutos são 72 pontos.
     expect(windowPointsFor(curva, 0.5)).toBe(72);
+  });
+});
+
+describe("emenda de setores", () => {
+  /** Dois trechos separados por semanas, com niveis de base diferentes. */
+  function curvaEmendada() {
+    const a = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0.0004,
+      variabilityAmplitude: 0,
+      seed: 11,
+    });
+
+    const b = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0.0004,
+      variabilityAmplitude: 0,
+      seed: 22,
+    });
+
+    const INTERVALO = 30; // dias de silencio entre um setor e outro
+    const DEGRAU = 0.03; // o segundo setor chega 3% mais brilhante
+
+    const time = new Float64Array(a.time.length + b.time.length);
+    const flux = new Float64Array(a.flux.length + b.flux.length);
+
+    time.set(a.time, 0);
+    flux.set(a.flux, 0);
+
+    for (let i = 0; i < b.time.length; i += 1) {
+      time[a.time.length + i] = b.time[i] + a.time[a.time.length - 1] + INTERVALO;
+      flux[a.flux.length + i] = b.flux[i] + DEGRAU;
+    }
+
+    return { time, flux };
+  }
+
+  it("enxerga o buraco entre os setores", () => {
+    const curva = curvaEmendada();
+
+    expect(segmentStarts(curva.time, 0.5)).toHaveLength(2);
+  });
+
+  it("nao parte uma curva continua", () => {
+    const curva = generateLightCurve({ ...CURTA, period: 1.3, depth: 0.02 });
+
+    expect(segmentStarts(curva.time, 0.5)).toEqual([0]);
+  });
+
+  it("achata cada setor no proprio nivel, sem borrar na emenda", () => {
+    const curva = curvaEmendada();
+    const achatada = detrend(curva, windowPointsFor(curva, 0.5));
+
+    const inicios = segmentStarts(curva.time, 0.5);
+    const corte = inicios[1];
+
+    const mediana = (inicio: number, fim: number) => {
+      const v = Array.from(achatada.flux.slice(inicio, fim)).sort((x, y) => x - y);
+      return v[Math.floor(v.length / 2)];
+    };
+
+    // Os dois setores tinham niveis diferentes; depois de achatar, os dois
+    // giram em torno de 1. E o degrau de 3% nao contamina a vizinhanca da
+    // emenda — que e onde uma janela cega ao tempo erraria.
+    expect(mediana(0, corte)).toBeCloseTo(1, 3);
+    expect(mediana(corte, achatada.flux.length)).toBeCloseTo(1, 3);
+    expect(mediana(corte - 40, corte)).toBeCloseTo(1, 2);
+    expect(mediana(corte, corte + 40)).toBeCloseTo(1, 2);
+  });
+
+  it("recupera o periodo com os dois setores juntos", () => {
+    const resultado = analyse(curvaEmendada(), {
+      detrendWindowDays: 0.5,
+      bls: { minPeriod: 0.9, maxPeriod: 2, periodCount: 400, bins: 120 },
+    });
+
+    expect(resultado.candidate).not.toBeNull();
+    expect(resultado.candidate!.period).toBeGreaterThan(1.28);
+    expect(resultado.candidate!.period).toBeLessThan(1.32);
   });
 });
 

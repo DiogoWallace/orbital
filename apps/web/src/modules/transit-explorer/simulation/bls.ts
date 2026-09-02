@@ -73,6 +73,32 @@ export interface BlsResult {
   best: TransitCandidate | null;
 }
 
+/**
+ * Espaçamento de período que a baseline exige, em dias, na região de `period`.
+ *
+ * Um erro de período não fica parado: ele vira deriva de fase, e a deriva
+ * cresce com o número de ciclos observados. Ao longo de uma baseline `T` há
+ * `T/P` ciclos, então um erro `δP` desloca o último trânsito em `(T/P)·δP`. Para
+ * o sinal não borrar, esse deslocamento precisa caber em uma divisão de fase,
+ * que vale `P/bins`.
+ *
+ *     (T/P)·δP < P/bins   ⟹   δP < P²/(T·bins)
+ *
+ * A consequência prática é dura: **dobrar a baseline exige dobrar a densidade
+ * da grade.** Emendar setores sem isso encontra menos do que um setor só — foi
+ * exatamente o que aconteceu ao juntar quatro setores de π Mensae c com a grade
+ * de um setor, e o período voltou 28% errado.
+ */
+export function requiredPeriodStep(
+  baselineDays: number,
+  period: number,
+  bins: number,
+): number {
+  if (baselineDays <= 0 || bins <= 0) return Number.POSITIVE_INFINITY;
+
+  return (period * period) / (baselineDays * bins);
+}
+
 export function boxLeastSquares(
   curve: LightCurve,
   options: Partial<BlsOptions> = {},
@@ -119,15 +145,15 @@ export function boxLeastSquares(
 
   let melhor: TransitCandidate | null = null;
 
-  for (let k = 0; k < quantidade; k += 1) {
-    // Frequência descendente produz período ascendente, que é a ordem em que o
-    // periodograma é lido.
-    const fracao = quantidade === 1 ? 0 : k / (quantidade - 1);
-    const frequencia = frequenciaMax - (frequenciaMax - frequenciaMin) * fracao;
-    const periodo = 1 / frequencia;
-
-    periods[k] = periodo;
-
+  /**
+   * Pontua um período: dobra a curva, procura a melhor caixa, devolve o ajuste.
+   *
+   * Extraída do laço porque a busca tem dois estágios — a grade grossa varre a
+   * plataforma toda, o refino varre a vizinhança do vencedor —, e os dois
+   * precisam pontuar exatamente igual. Duas cópias divergiriam na primeira
+   * correção.
+   */
+  function avaliar(periodo: number): TransitCandidate | null {
     somaFluxo.fill(0);
     somaPeso.fill(0);
 
@@ -180,19 +206,66 @@ export function boxLeastSquares(
       }
     }
 
-    const pontuacao = Math.sqrt(melhorLocal);
-    power[k] = pontuacao;
+    if (melhorLocal <= 0) return null;
 
-    if (melhorLocal > 0 && (melhor === null || pontuacao > melhor.power)) {
-      const centro = (melhorInicio + melhorLargura / 2) / nb;
+    const centro = (melhorInicio + melhorLargura / 2) / nb;
 
-      melhor = {
-        period: periodo,
-        power: pontuacao,
-        depth: -melhorSoma / (melhorPeso * (1 - melhorPeso)),
-        durationDays: (melhorLargura / nb) * periodo,
-        epoch: t0 + (centro - Math.floor(centro)) * periodo,
-      };
+    return {
+      period: periodo,
+      power: Math.sqrt(melhorLocal),
+      depth: -melhorSoma / (melhorPeso * (1 - melhorPeso)),
+      durationDays: (melhorLargura / nb) * periodo,
+      epoch: t0 + (centro - Math.floor(centro)) * periodo,
+    };
+  }
+
+  // --- Primeiro estágio: a grade grossa, na plataforma inteira -------------
+  for (let k = 0; k < quantidade; k += 1) {
+    // Frequência descendente produz período ascendente, que é a ordem em que o
+    // periodograma é lido.
+    const fracao = quantidade === 1 ? 0 : k / (quantidade - 1);
+    const frequencia = frequenciaMax - (frequenciaMax - frequenciaMin) * fracao;
+    const periodo = 1 / frequencia;
+
+    periods[k] = periodo;
+
+    const avaliado = avaliar(periodo);
+    power[k] = avaliado?.power ?? 0;
+
+    if (avaliado !== null && (melhor === null || avaliado.power > melhor.power)) {
+      melhor = avaliado;
+    }
+  }
+
+  // --- Segundo estágio: refina em volta do melhor ------------------------
+  //
+  // A grade grossa localiza a vizinhança; ela raramente cai no período exato.
+  // Varrer a plataforma inteira na densidade que a baseline exige custaria
+  // dezenas de vezes mais — refinar só onde importa custa uma fração, e é o
+  // que torna a emenda de setores viável.
+  if (melhor !== null) {
+    const baseline = curve.time[total - 1] - curve.time[0];
+    const passoGrosso = (melhor.period * melhor.period) * (frequenciaMax - frequenciaMin) /
+      Math.max(quantidade - 1, 1);
+    const passoFino = requiredPeriodStep(baseline, melhor.period, nb);
+
+    if (passoFino < passoGrosso) {
+      const janela = passoGrosso * 2;
+      // Teto de passos: refinar é barato, mas não infinito. Vinte mil pontos
+      // cobrem baselines de anos sem transformar o refino no gargalo.
+      const passos = Math.min(Math.ceil((2 * janela) / passoFino), 20_000);
+
+      for (let k = 0; k <= passos; k += 1) {
+        const periodo = melhor.period - janela + (2 * janela * k) / passos;
+
+        if (periodo <= 0) continue;
+
+        const avaliado = avaliar(periodo);
+
+        if (avaliado !== null && avaliado.power > melhor.power) {
+          melhor = avaliado;
+        }
+      }
     }
   }
 

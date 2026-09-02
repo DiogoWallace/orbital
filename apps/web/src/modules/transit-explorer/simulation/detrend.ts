@@ -69,6 +69,28 @@ export function medianInPlace(buffer: Float64Array, tamanho: number): number {
   return (anterior + buffer[alvo]) / 2;
 }
 
+/**
+ * Onde a série se parte.
+ *
+ * Devolve os índices que **começam** um trecho contínuo. Uma curva de um setor
+ * só tem um trecho; uma emenda de vários setores tem um por setor, com semanas
+ * de silêncio entre eles.
+ *
+ * Isto existe porque a mediana móvel desliza por índice, e não por tempo. Sem
+ * cortar nos buracos, a janela do último ponto antes da lacuna mistura fluxo
+ * medido semanas depois, com outro nível de base e outra sistemática — e o
+ * achatamento sai errado justamente nas bordas, que é onde ele mais importa.
+ */
+export function segmentStarts(time: Float64Array, maxGapDays: number): number[] {
+  const inicios = [0];
+
+  for (let i = 1; i < time.length; i += 1) {
+    if (time[i] - time[i - 1] > maxGapDays) inicios.push(i);
+  }
+
+  return inicios;
+}
+
 /** A tendência lenta da curva: a mediana móvel do fluxo. */
 export function movingMedian(flux: Float64Array, windowPoints: number): Float64Array {
   const total = flux.length;
@@ -102,14 +124,38 @@ export function movingMedian(flux: Float64Array, windowPoints: number): Float64A
  * nível de base muda. Subtrair daria profundidades diferentes para o mesmo
  * planeta em trechos mais brilhantes e mais fracos da curva.
  */
-export function detrend(curve: LightCurve, windowPoints: number): LightCurve {
-  const tendencia = movingMedian(curve.flux, windowPoints);
+/**
+ * Divide a curva pela própria tendência, um trecho contínuo de cada vez.
+ *
+ * Divisão, e não subtração: a profundidade de um trânsito é uma *fração* do
+ * brilho da estrela, então dividir preserva o significado da medida quando o
+ * nível de base muda. Subtrair daria profundidades diferentes para o mesmo
+ * planeta em trechos mais brilhantes e mais fracos da curva.
+ *
+ * `maxGapDays` define o que conta como buraco. Meio dia é folgado para a
+ * cadência de dois minutos e apertado o bastante para separar setores, que
+ * ficam a semanas de distância.
+ */
+export function detrend(
+  curve: LightCurve,
+  windowPoints: number,
+  maxGapDays = 0.5,
+): LightCurve {
   const flux = new Float64Array(curve.flux.length);
+  const inicios = segmentStarts(curve.time, maxGapDays);
 
-  for (let i = 0; i < flux.length; i += 1) {
-    // Tendência nula ou negativa não acontece em fotometria normalizada, mas
-    // um arquivo corrompido não pode virar `Infinity` silencioso no gráfico.
-    flux[i] = tendencia[i] > 0 ? curve.flux[i] / tendencia[i] : 1;
+  for (let s = 0; s < inicios.length; s += 1) {
+    const inicio = inicios[s];
+    const fim = s + 1 < inicios.length ? inicios[s + 1] : curve.flux.length;
+
+    const trecho = curve.flux.slice(inicio, fim);
+    const tendencia = movingMedian(trecho, windowPoints);
+
+    for (let i = 0; i < trecho.length; i += 1) {
+      // Tendência nula ou negativa não acontece em fotometria normalizada, mas
+      // um arquivo corrompido não pode virar `Infinity` silencioso no gráfico.
+      flux[inicio + i] = tendencia[i] > 0 ? trecho[i] / tendencia[i] : 1;
+    }
   }
 
   return { time: curve.time, flux };
