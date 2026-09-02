@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Hook de mensagem de commit do Orbital.
+
+Faz duas coisas, nesta ordem:
+
+1. remove qualquer atribuição de IA da mensagem — a regra vale para commit,
+   PR, release e deploy, e aqui é a única parte que dá para automatizar;
+2. recusa título fora do padrão de `docs/CONVENCOES-DE-COMMIT.md`.
+
+Instalado por `make hooks`, que aponta o `core.hooksPath` para `.githooks/`.
+Diferente de `.git/hooks/`, esta pasta é versionada: um clone novo roda um
+comando em vez de reconstruir o hook de cabeça.
+"""
+
+import re
+import sys
+
+ATRIBUICAO_DE_IA = [
+    r"^Co-[Aa]uthored-[Bb]y:\s*Claude\b",
+    r"^Co-[Aa]uthored-[Bb]y:.*@anthropic\.com",
+    r"Generated with \[?Claude Code\]?",
+    r"^\s*🤖",
+]
+
+TIPOS = [
+    "feat",
+    "fix",
+    "docs",
+    "refactor",
+    "perf",
+    "test",
+    "build",
+    "ci",
+    "chore",
+    "exp",
+    "revert",
+]
+
+TITULO = re.compile(
+    r"^(?P<tipo>[a-z]+)"
+    r"(?:\((?P<escopo>[a-z0-9][a-z0-9._-]*)\))?"
+    r"(?P<quebra>!)?"
+    r": (?P<resumo>.+)$"
+)
+
+# Começar o resumo com maiúscula é erro, menos quando é nome próprio.
+NOMES_PROPRIOS = {
+    "Brenda", "Caddy", "Composer", "Docker", "Google", "Laravel", "Mailpit",
+    "Next", "Nocturne", "Orbital", "Pest", "Pint", "Postgres", "PostgreSQL",
+    "Redis", "Resend", "Sanctum", "Tailwind", "Ubuntu", "Vitest", "Webb",
+    "Windows",
+}
+
+PULA_VALIDACAO = ("Merge ", "Revert ", "fixup!", "squash!", "amend!")
+
+LIMITE_TITULO = 72
+LIMITE_CORPO = 80
+
+
+def sem_atribuicao(mensagem):
+    linhas = [
+        linha
+        for linha in mensagem.split("\n")
+        if not any(re.search(padrao, linha) for padrao in ATRIBUICAO_DE_IA)
+    ]
+    return "\n".join(linhas).rstrip() + "\n"
+
+
+def recusa(titulo, problemas):
+    print("", file=sys.stderr)
+    print(f"  Título recusado: {titulo}", file=sys.stderr)
+    print("", file=sys.stderr)
+    for problema in problemas:
+        print(f"  · {problema}", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  Formato: <tipo>(<escopo>)!: <resumo no imperativo>", file=sys.stderr)
+    print(f"  Tipos:   {', '.join(TIPOS)}", file=sys.stderr)
+    print("  Exemplo: fix(api): resolve o usuário do token nas rotas públicas",
+          file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  A convenção inteira está em docs/CONVENCOES-DE-COMMIT.md.",
+          file=sys.stderr)
+    print("  A mensagem que você escreveu ficou em .git/COMMIT_EDITMSG.",
+          file=sys.stderr)
+    print("", file=sys.stderr)
+    sys.exit(1)
+
+
+def valida(mensagem):
+    linhas = [linha for linha in mensagem.split("\n")
+              if not linha.startswith("#")]
+    uteis = [i for i, linha in enumerate(linhas) if linha.strip()]
+    if not uteis:
+        return  # mensagem vazia: o próprio git aborta o commit
+
+    primeira = uteis[0]
+    titulo = linhas[primeira].rstrip()
+
+    if titulo.startswith(PULA_VALIDACAO):
+        return
+
+    problemas = []
+    casado = TITULO.match(titulo)
+
+    if not casado:
+        problemas.append("não está no formato `tipo(escopo): resumo`")
+        recusa(titulo, problemas)
+
+    tipo = casado.group("tipo")
+    resumo = casado.group("resumo").strip()
+
+    if tipo not in TIPOS:
+        problemas.append(f"`{tipo}` não é um tipo válido")
+
+    if len(titulo) > LIMITE_TITULO:
+        problemas.append(
+            f"tem {len(titulo)} caracteres; o limite é {LIMITE_TITULO}"
+        )
+
+    if resumo.endswith("."):
+        problemas.append("termina em ponto final")
+
+    primeira_palavra = resumo.split()[0] if resumo.split() else ""
+    if (re.match(r"^[A-ZÀ-Ý][a-zà-ÿ]", primeira_palavra)
+            and primeira_palavra not in NOMES_PROPRIOS):
+        problemas.append(
+            f"começa com maiúscula (`{primeira_palavra}`) sem ser nome próprio"
+        )
+
+    if len(uteis) > 1 and linhas[primeira + 1].strip():
+        problemas.append("falta a linha em branco entre o título e o corpo")
+
+    if problemas:
+        recusa(titulo, problemas)
+
+    # Corpo largo demais é aviso, não recusa: tabela, URL e bloco de código
+    # legitimamente passam de 80 colunas. O limite saiu da medição do próprio
+    # histórico — 665 linhas de corpo, p90 em 79 colunas.
+    corpo = linhas[primeira + 1:]
+    longas = [
+        linha for linha in corpo
+        if len(linha) > LIMITE_CORPO
+        and "://" not in linha
+        and not linha.startswith(("|", "    ", "\t"))
+    ]
+    if longas:
+        print(
+            f"  aviso: {len(longas)} linha(s) do corpo passam de "
+            f"{LIMITE_CORPO} colunas",
+            file=sys.stderr,
+        )
+
+
+def main():
+    caminho = sys.argv[1]
+
+    with open(caminho, encoding="utf-8") as arquivo:
+        mensagem = arquivo.read()
+
+    mensagem = sem_atribuicao(mensagem)
+
+    with open(caminho, "w", encoding="utf-8") as arquivo:
+        arquivo.write(mensagem)
+
+    valida(mensagem)
+
+
+if __name__ == "__main__":
+    main()

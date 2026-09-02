@@ -237,9 +237,30 @@ docker compose -p prodtest -f docker-compose.prod.yml --env-file .env.production
 
 ## 9. Committing
 
-Portuguese, imperative, no AI attribution anywhere — commit, PR description, release or
-deploy message. A `commit-msg` hook in `.git/hooks/` strips the trailer, but hooks are
-not versioned and it does not cover PR descriptions.
+Format since 02/09/2026 — the whole convention is `docs/CONVENCOES-DE-COMMIT.md`:
+
+```
+<tipo>(<escopo>)!: <resumo no imperativo, minúsculo, sem ponto, ate 72 col>
+
+<corpo em 80 colunas: por quê, números antes e depois, o que foi descartado>
+
+Refs: ADR 0014
+```
+
+`feat fix docs refactor perf test build ci chore exp revert`. `exp` is this
+repository's addition: a measured experiment whose finding is the delivery, negative
+results included. Scope is the domain, the module key or the tool (`editorial`,
+`rocket-anatomy`, `tess`, `brenda`, `design`, `db`, `deploy`, `skill`).
+
+One line per clone: `make hooks`, which points `core.hooksPath` at the versioned
+`.githooks/`. The `commit-msg` hook strips AI attribution and refuses a title out of
+pattern.
+
+Write the message to a file and commit with `git commit -F .git/MENSAGEM`; a `-m`
+passing through `wsl.exe` mangles the text and drops the accents.
+
+Portuguese, imperative, no AI attribution anywhere — commit, PR description, release
+or deploy message. The hook does not reach the PR description; the PR template does.
 
 Before the commit, run only what the change touched (SKILL.md §8), and ask the question
 no command answers: **did the core change to accommodate one module?**

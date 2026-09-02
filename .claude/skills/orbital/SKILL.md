@@ -6,8 +6,9 @@ description: >-
   (apps/web) monorepo at ~/projects/orbital. Use it whenever the task touches
   this repository: adding or changing a scientific module, the catalog, the
   blog, comments and likes, auth (Sanctum + BFF, email verification, Google
-  login), the design tokens, Docker, the VPS deploy — and before running any
-  command, because nothing runs on the host. It also covers "how does this
+  login), the design tokens, Docker, the VPS deploy, how a commit message is
+  written here — and before running any command, because nothing runs on the
+  host. It also covers "how does this
   work here", "what is already done", "what is left", "how do I start the
   environment", "why was it built this way", "can I add this library".
   Questions usually arrive in Portuguese ("como subo o ambiente", "o que falta
@@ -294,6 +295,7 @@ effort for most tasks.
 | The landing or the Webb gallery | `README.md` §Imagens | `src/lib/webb.ts` |
 | Deploying, the VPS, DNS, Resend, backups | `docs/DEPLOY.md` | `deploy/*.sh` |
 | Starting, stopping or debugging the environment | `references/environment.md` | `README.md` §Quando algo não sobe |
+| Writing the commit for what you just did | `docs/CONVENCOES-DE-COMMIT.md` | §9 below |
 | Not knowing where something lives | `references/map.md` | — |
 | A recurring change you have done before | `references/recipes.md` | — |
 | Checking whether something was already decided | `docs/ARCHITECTURE.md` §10 (the ADR index) | the ADR's *Alternativas consideradas* |
@@ -346,14 +348,65 @@ that is the invariant in §1 breaking, and it is worth a conversation before the
 
 ## 9. Commit conventions
 
-No AI attribution anywhere — no `Co-Authored-By`, no "Generated with", not in commits,
-PR descriptions, releases or deploy messages. Messages in Portuguese, imperative mood,
-matching the existing history (`Adiciona o blog`, `Corrige acesso a refs durante o
-render no módulo orbital`).
+Since **02/09/2026** every commit carries a Conventional Commits prefix. The whole
+convention — types, scopes, title and body rules, footers — is
+`docs/CONVENCOES-DE-COMMIT.md`, and **that document is the authority**. What follows
+is what you need in hand before writing one.
 
-There is a `commit-msg` hook in `.git/hooks/` calling `strip-ai-sig.py` that removes
-the trailer automatically. **Hooks are not versioned** — a fresh clone has to reinstall
-it, and it does not cover PR descriptions at all.
+```
+<tipo>(<escopo>)!: <resumo no imperativo>
+
+<corpo — por quê, com os números quando houver medição, em 80 colunas>
+
+<rodapé — Refs / Closes / BREAKING CHANGE>
+```
+
+Types: `feat fix docs refactor perf test build ci chore exp revert`. One of them is
+this repository's own and it matters here: **`exp`**, a measured experiment where the
+finding *is* the delivery, including when it is negative — `exp(brenda): treina o
+primeiro modelo, e ele não bate a linha de base`. Neither `feat` nor `fix` would be
+true of that commit, and the negative result has to stay findable: it is how
+`odd-even` was condemned in one training run and rehabilitated two commits later.
+
+Scopes are the domain, the module key or the tool: `identity`, `catalog`, `editorial`,
+`community`, `datasets`, `projects`, `simulation`, `orbital-sandbox`,
+`rocket-anatomy`, `transit-explorer`, `lab`, `design`, `db`, `tess`, `brenda`,
+`docker`, `deploy`, `adr`, `skill`. Most specific one that is still true, one only —
+if two are needed it is usually two commits.
+
+Title: Portuguese, imperative third person (`adiciona`, `corrige`, `mede`), lowercase
+after the colon unless a proper noun, no trailing period, **72 characters including
+the prefix**, and **with accents**.
+
+Body: wrapped at **80 columns** — the width the history already uses (665 body
+lines measured, p90 at 79). The bar is set by that same history and it is high — the *why*, the numbers
+before and after, the negative result stated as such, the attempt that was discarded
+and why. `git log -1 d488951` is the model to copy. This is the part of the repository
+most worth imitating; a body that only restates the diff is a regression from what is
+already there.
+
+**Write the message from a file, never `git commit -m` through `wsl.exe`.** That path
+mangles the text and eats the accents — it is where the accent-less commits of late
+August came from.
+
+```bash
+git commit -F .git/MENSAGEM      # arquivo escrito de dentro do WSL, UTF-8, LF
+```
+
+**Hooks are versioned now**, in `.githooks/`, and `make hooks` is the one line per
+clone that makes Git see them (it sets `core.hooksPath` and registers the
+`.gitmessage` template). The `commit-msg` hook strips AI attribution and refuses a
+title outside the pattern, naming the reason. A `.git/hooks/commit-msg` left from an
+older clone stops running the moment `core.hooksPath` changes.
+
+**No AI attribution anywhere** — no `Co-Authored-By`, no "Generated with", not in
+commits, PR descriptions, releases or deploy messages. The hook covers the commit
+message and nothing else: the PR description is on you, and
+`.github/pull_request_template.md` carries the reminder next to the checklist.
+
+**The history before 02/09/2026 has no prefixes and stays that way.** `main` is public
+and has clones outside this machine; rewriting forty commits to gain a prefix would
+trade a readable history for a readable and broken one.
 
 Repository: **public**, `DiogoWallace/orbital`, default branch `main`. The `gh` CLI in
 WSL is authenticated as **`Sr-Ryuk`**, not `DiogoWallace` — pushes work, but

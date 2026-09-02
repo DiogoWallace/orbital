@@ -1,0 +1,23 @@
+
+# <tipo>(<escopo>): <resumo no imperativo, minúsculo, sem ponto, até 72 col>
+#
+# Corpo — por quê, não o quê. Quebrado em 80 colunas.
+#   · o número, quando houve medição: antes → depois, com unidade
+#   · o resultado negativo, igual ao positivo — é o que evita a repetição
+#   · o que foi tentado e descartado, com o motivo
+#   · a causa, não o sintoma
+#
+# Rodapé:
+#   Refs: ADR 0014
+#   Closes #12
+#   BREAKING CHANGE: o que quebra e o que fazer (exige `!` no título)
+#
+# tipos    feat fix docs refactor perf test build ci chore exp revert
+# escopos  api · identity catalog editorial community datasets projects
+#          simulation · web · orbital-sandbox rocket-anatomy transit-explorer
+#          lab design db tess brenda docker deploy adr skill
+#
+# `exp` é para experimento medido: o entregável é a medição, não o código.
+#
+# Convenção inteira: docs/CONVENCOES-DE-COMMIT.md
+# Sem atribuição de IA em lugar nenhum — nem aqui, nem na descrição do PR.

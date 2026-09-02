@@ -34,38 +34,23 @@ foi construída antes do `USER ${UID}`: `docker compose build api queue`. Se o
 nginx devolver 502 depois de um `restart api`, reinicie o nginx junto — ele
 resolve o IP do php-fpm uma vez só.
 
-## 2. O hook que remove atribuição de IA
+## 2. Os hooks
 
-**Hooks não são versionados.** Um clone novo não tem o `commit-msg` que retira o
-trailer de coautoria, e o default do harness manda incluí-lo. Sem o hook, ele
-volta a aparecer.
+Os hooks vivem em `.githooks/`, versionados, mas o Git só os enxerga depois de
+uma linha de configuração — e essa configuração é local ao clone:
 
 ```bash
-mkdir -p .git/hooks
-cat > .git/hooks/strip-ai-sig.py <<'PY'
-import re, sys
-
-PATTERNS = [
-    r"^Co-[Aa]uthored-[Bb]y:\s*Claude\b",
-    r"^Co-[Aa]uthored-[Bb]y:.*@anthropic\.com",
-    r"Generated with \[?Claude Code\]?",
-    r"^\s*🤖",
-]
-
-msg = sys.stdin.read()
-kept = [l for l in msg.split("\n") if not any(re.search(p, l) for p in PATTERNS)]
-sys.stdout.write("\n".join(kept).rstrip() + "\n")
-PY
-
-cat > .git/hooks/commit-msg <<'SH'
-#!/usr/bin/env bash
-set -e
-python3 "$(dirname "$0")/strip-ai-sig.py" < "$1" > "$1.stripped"
-mv "$1.stripped" "$1"
-SH
-
-chmod +x .git/hooks/commit-msg
+make hooks
 ```
+
+Isso aponta o `core.hooksPath` para `.githooks/` e registra o `.gitmessage`
+como template de mensagem. O `commit-msg` remove qualquer atribuição de IA
+(o default do harness manda incluí-la, e sem o hook ela volta) e recusa título
+fora do padrão de [CONVENCOES-DE-COMMIT.md](CONVENCOES-DE-COMMIT.md).
+
+Se `.git/hooks/commit-msg` existir de um clone antigo, ele para de rodar assim
+que o `core.hooksPath` muda — pode apagar, junto com o `strip-ai-sig.py` que o
+acompanhava.
 
 ## 3. O ambiente Python das ferramentas
 

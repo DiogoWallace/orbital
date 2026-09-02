@@ -10,7 +10,9 @@ apps/web/       Next.js 16 · React 19 · Tailwind 4
 packages/       contracts/ — declared in ADR 0001, still EMPTY
 docker/         php · nginx · postgres · caddy
 deploy/         bootstrap · deploy · backup · install-cron · remote-setup
-docs/           ARCHITECTURE.md · MODULES.md · DEPLOY.md · adr/0001..0013
+docs/           ARCHITECTURE.md · MODULES.md · DEPLOY.md · adr/0001..0014
+                CONVENCOES-DE-COMMIT.md · CONTINUAR-EM-OUTRA-MAQUINA.md
+.githooks/      commit-msg — versioned, enabled by `make hooks`
 ```
 
 ---
@@ -196,4 +198,7 @@ in project `006b6c34-4faf-4e09-92e0-22df896cb0f2` (`Orbital - Redesign.dc.html`)
 | `docker/postgres/init.sql` | `pg_trgm`, `unaccent`, `citext` |
 | `docker/caddy/Caddyfile` | edge TLS, routing, and (uncommitted) `handle_errors` |
 | `deploy/*.sh` | `bootstrap` (one-time VPS hardening), `deploy`, `backup`, `install-cron`, `remote-setup` |
+| `.githooks/commit-msg` | strips AI attribution, refuses a title outside `docs/CONVENCOES-DE-COMMIT.md`; inert until `make hooks` sets `core.hooksPath` |
+| `.gitmessage` | commit template — the format, the types and the scopes, in the editor |
+| `.github/pull_request_template.md` | what changes, why, how to verify, plus the three checks that already cost time |
 | `.github/workflows/ci.yml` | three jobs — API (Pest + Pint against real Postgres), web (typecheck, Vitest, lint), images (GHCR, main only, green only) |

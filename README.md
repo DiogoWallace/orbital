@@ -24,6 +24,14 @@ docker compose up -d
 docker compose exec api php artisan migrate --seed
 ```
 
+Uma vez por clone, instale os hooks versionados — eles removem atribuição de
+IA da mensagem e recusam título fora do padrão de
+[docs/CONVENCOES-DE-COMMIT.md](docs/CONVENCOES-DE-COMMIT.md):
+
+```bash
+make hooks
+```
+
 | Serviço | URL |
 |---|---|
 | Frontend | http://localhost:3100 |
@@ -55,6 +63,7 @@ O `Makefile` é só um atalho. Se `make` não estiver instalado
 | `make migrate` | `docker compose exec api php artisan migrate` |
 | `make fresh` | `docker compose exec api php artisan migrate:fresh --seed` |
 | `make test` | `docker compose exec api php artisan test` |
+| `make hooks` | `git config core.hooksPath .githooks` (uma vez por clone) |
 
 No frontend:
 
@@ -107,6 +116,7 @@ docker compose restart nginx
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | visão geral, camadas, tecnologias e roadmap |
 | [docs/MODULES.md](docs/MODULES.md) | como adicionar um módulo científico |
 | [docs/adr/](docs/adr/) | decisões arquiteturais, com alternativas descartadas |
+| [docs/CONVENCOES-DE-COMMIT.md](docs/CONVENCOES-DE-COMMIT.md) | formato das mensagens de commit, tipos e escopos |
 | [docs/CONTINUAR-EM-OUTRA-MAQUINA.md](docs/CONTINUAR-EM-OUTRA-MAQUINA.md) | o que o clone não traz, e como reconstruir |
 | [tools/tess/](tools/tess/) | ingestão de dados do TESS e a linha de base medida |
 | [tools/brenda/](tools/brenda/) | o classificador, e o primeiro treino |
