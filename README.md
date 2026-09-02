@@ -107,6 +107,9 @@ docker compose restart nginx
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | visão geral, camadas, tecnologias e roadmap |
 | [docs/MODULES.md](docs/MODULES.md) | como adicionar um módulo científico |
 | [docs/adr/](docs/adr/) | decisões arquiteturais, com alternativas descartadas |
+| [docs/CONTINUAR-EM-OUTRA-MAQUINA.md](docs/CONTINUAR-EM-OUTRA-MAQUINA.md) | o que o clone não traz, e como reconstruir |
+| [tools/tess/](tools/tess/) | ingestão de dados do TESS e a linha de base medida |
+| [tools/brenda/](tools/brenda/) | o classificador, e o primeiro treino |
 
 ## O princípio
 
