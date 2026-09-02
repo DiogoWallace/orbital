@@ -161,10 +161,12 @@ biblioteca que nunca foi instalada. Separado, e conferido contra o
 | Tailwind v4 | design system | tokens em CSS vars; os componentes são CSS próprio (Nocturne), sem biblioteca de UI |
 | Pest / Vitest | testes | API / física pura |
 
-**Zustand está instalado e não é usado em lugar nenhum do `src/`.** Entrou
-pensando em estado de simulação a 60 fps fora do ciclo de render, e o
-`useSimulationLoop` resolveu sem ele. Ou aparece um uso, ou sai do
-`package.json` — dependência sem chamador é dívida silenciosa.
+**Zustand saiu em 02/09/2026.** Entrou no começo do projeto pensando em estado
+de simulação a 60 fps fora do ciclo de render, e o `useSimulationLoop` resolveu
+o problema sem ele — ficou no `package.json` desde então sem um único import.
+Se a necessidade voltar (estado compartilhado entre o módulo e a casca,
+atualizando fora do render), ele continua sendo a escolha certa, e aí entra com
+o uso junto. Dependência sem chamador é dívida silenciosa.
 
 ### Escolhidas, ainda não instaladas
 
