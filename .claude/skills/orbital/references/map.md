@@ -104,7 +104,7 @@ Adding a route means choosing one of these groups. There is no sixth option.
 | `(platform)/` | `dashboard`, `explorar`, `disciplinas/[slug]`, `modulos/[slug]`, `projetos`, `projetos/[slug]`, `blog`, `blog/[slug]`, `perfil/[username]`, `conta` |
 | `api/` | **the BFF** — `auth/{login,logout,register,forgot-password,reset-password,email/verify,email/resend,google/start,google/callback}`, `posts/[slug]/{comments,like}`, `comments/[id]/{route,like,report,moderation}`, `me/profile` |
 
-Error boundaries (**uncommitted**): `app/error.tsx`, `app/global-error.tsx`,
+Error boundaries (commit `b328b45`): `app/error.tsx`, `app/global-error.tsx`,
 `app/not-found.tsx`, and the `(platform)` pair. The root `not-found.tsx` is where Next
 serves URLs matching no route — it must stay outside the route groups.
 
@@ -132,10 +132,12 @@ serves URLs matching no route — it must stay outside the route groups.
 - `ui/` — `Button`, `Panel`, `Badge`, `Field`, `GoogleButton`. Thin wrappers over the
   Nocturne CSS classes: they bring typing, `aria-*` and composition, **not appearance**.
 - `layout/` — `SiteHeader`, `HeaderNav`, `SiteFooter`, `AuthCard`,
-  `UnverifiedEmailBanner`, and (uncommitted) `BrandBar`, `ErrorScreen`.
+  `UnverifiedEmailBanner`, `BrandBar`, `ErrorScreen`.
 - `lab/` — **the reusable scientific primitives**: `ParameterPanel`,
-  `ParameterSlider`, `ReadoutGrid`, `SimulationControls`. This is where something gets
-  promoted on its third module.
+  `ParameterSlider`, `ReadoutGrid`, `SimulationControls`, `RunRecorder`. This is where
+  something gets promoted on its third module, and all five arrived that way: every
+  module imports `ParameterPanel`, `ReadoutGrid` and `RunRecorder`, and the two that
+  step through time also import `SimulationControls`.
 - `data/` — `LineChart` (its own SVG, around 100 lines; visx and uPlot are the
   documented next steps, not present).
 - `catalog/ModuleCard`, `blog/{PostCard,FeedRow}`, `community/{CommentThread,
@@ -150,12 +152,23 @@ an email hash (ADR 0013).
 modules/
 ├── types.ts       the contract: Zod schemas for spec/parameters/presets/outputs/charts
 ├── registry.ts    the single manual list — one static import() per module
-└── orbital-sandbox/
-    ├── index.ts                    the ModuleDefinition
-    ├── Module.tsx                  "use client" entry point
-    ├── components/OrbitCanvas.tsx
-    └── simulation/orbit.ts + orbit.test.ts     ⚠️ pure TS, zero React
+├── orbital-sandbox/
+│   ├── index.ts                    the ModuleDefinition
+│   ├── Module.tsx                  "use client" entry point
+│   ├── components/OrbitCanvas.tsx
+│   └── simulation/orbit.ts + orbit.test.ts     ⚠️ pure TS, zero React
+├── rocket-anatomy/
+│   ├── components/RocketCutaway.tsx            the interactive SVG
+│   ├── data/geometry.ts · data/telemetry.ts    the 12 systems and their readings
+│   └── simulation/ascent.ts + ascent.test.ts   vertical ascent, 17 cases
+└── transit-explorer/
+    ├── data/targets.ts · data/decimate.ts      the five teaching targets, downsampling
+    └── simulation/                             bls · detrend · analysis · synthetic
+        └── + bls/analysis/scale/lote tests     36 cases, all pure TS
 ```
+
+The three `simulation/` folders hold **no React import at all** — that is invariant 2,
+and it is what keeps the physics testable in Vitest without rendering.
 
 `types.ts` is the boundary between core and modules. `moduleSpecSchema` uses
 `.passthrough()`: unknown keys (a rocket's `hotspots`) reach the component untouched.
@@ -196,7 +209,7 @@ in project `006b6c34-4faf-4e09-92e0-22df896cb0f2` (`Orbital - Redesign.dc.html`)
 | `docker/php/Dockerfile.prod`, `entrypoint.prod.sh`, `php.prod.ini` | production PHP |
 | `docker/nginx/default.conf` / `prod.conf` / `Dockerfile.prod` | FastCGI to php-fpm |
 | `docker/postgres/init.sql` | `pg_trgm`, `unaccent`, `citext` |
-| `docker/caddy/Caddyfile` | edge TLS, routing, and (uncommitted) `handle_errors` |
+| `docker/caddy/Caddyfile` | edge TLS, routing, `handle_errors` with a static page for when the Next upstream is down |
 | `deploy/*.sh` | `bootstrap` (one-time VPS hardening), `deploy`, `backup`, `install-cron`, `remote-setup` |
 | `.githooks/commit-msg` | strips AI attribution, refuses a title outside `docs/CONVENCOES-DE-COMMIT.md`; inert until `make hooks` sets `core.hooksPath` |
 | `.gitmessage` | commit template — the format, the types and the scopes, in the editor |

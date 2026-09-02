@@ -26,7 +26,7 @@ PostgreSQL 16) and `apps/web` (Next.js 16 · React 19 · Tailwind 4).
 
 This file **does not repeat** `docs/` — it tells you what to read and in what order,
 what breaks when ignored, and how to run things. The reasoning behind every decision
-lives in `docs/ARCHITECTURE.md` and the thirteen ADRs, and **they are the authority**.
+lives in `docs/ARCHITECTURE.md` and the fourteen ADRs, and **they are the authority**.
 When this skill and a document disagree, the document wins and this skill is out of date.
 
 **Language note.** The project is written in Portuguese: documentation, code comments,
@@ -79,10 +79,21 @@ gets built.
 | — · Reproducibility | ADR **0014** | decided 31/08 — the seven links a run must carry, and the honest limit: `sin`/`cos`/`log` are implementation-approximated in ECMAScript, so the synthetic generator is not bit-portable across engines while the analysis path is |
 | 4 · Astronomy: transit detection | `transit-explorer` | **built 31/08 on synthetic curves, still `Draft`** — BLS, detrend, fold, S/N in pure TS with 36 test cases; five teaching targets (`SIN-1`..`SIN-5`). Real TESS data is not ingested yet |
 | 4b · Dataset ingestion | `Domain/Datasets` | **built 31/08** — `Dataset` + `DatasetSeries`, `IngestLightCurve`, `datasets:import`, three public routes, 14 tests. Provenance fields are mandatory per ADR 0014; no real curve ingested yet |
+| — · Commit conventions | commit `22f84d2` | done 02/09 — `docs/CONVENCOES-DE-COMMIT.md`, plus `exp` for measured experiments; hooks now versioned in `.githooks/`, enabled by `make hooks` |
+| — · Comparing, forking and sharing runs | `is_public` + UUID | **backend only** — no screen exists |
 | 5 · Chemistry / 3D molecules | roadmap | not started |
 
-**Exactly one module exists**: `orbital-sandbox` (orbital mechanics, canvas + Velocity
-Verlet) — it is the reference implementation, and the shape any new module should copy.
+**Three modules exist and are registered**: `orbital-sandbox` (orbital mechanics,
+canvas + Velocity Verlet), `rocket-anatomy` (interactive SVG plus the ascent simulation)
+and `transit-explorer` (BLS over synthetic curves, still `Draft`). `orbital-sandbox` is
+still the smallest complete example and the shape to copy; `rocket-anatomy` is the one
+that proved the contract survives a hard module.
+
+The seeder carries a **fourth** row that has no component: `geometria-molecular` points
+at `molecule-viewer`, which is deliberately absent from `registry.ts`. It is the
+"published in the database before the component exists" case, alive in the seed, and
+`ModuleRenderer` answers it with an explicit "module unavailable" panel instead of a
+blank screen. Do not "fix" it by adding a registry line.
 
 The `SimulationEngine` contract exists in Laravel **with zero implementations**, on
 purpose (ADR 0007): the extension point is ready, the code is not needed yet. Do not
@@ -94,39 +105,48 @@ the directory exists, the generation does not. Frontend types are hand-written i
 
 ---
 
-## 3. The direction, decided 31/08/2026
+## 3. The direction — decided 31/08/2026, and where it stands
 
-The project has **more infrastructure than experience**: one module against an
-architecture built for hundreds. The order was inverted deliberately from here on —
+The project had **more infrastructure than experience**: one module against an
+architecture built for hundreds. The order was inverted deliberately from there on —
 **experience → product → engineering**, not more engineering.
 
-What that means in practice, and what to push back on:
+**The first two steps shipped.** The rocket was built as a module under ADR 0005 —
+folder, registry line, seeder row, rendered by the existing `modulos/[slug]` shell — and
+the shell held: nothing outside `src/modules/rocket-anatomy/` had to change to
+accommodate it. `transit-explorer` followed by the same route. That is exactly the
+finding the step existed to produce, and it is why a bespoke `/lab` page was refused.
 
-- **No new infrastructure, no new ADRs, no new libraries** until a real problem
-  demands one. `ARCHITECTURE.md` §7 already lists what is deliberately out.
-- **The rocket is the flagship**, and it must be built as a **module** under ADR 0005
-  — folder, registry line, seeder row, rendered by the existing `modulos/[slug]`
-  shell. Not as a bespoke `/lab` page. Building it outside the contract would waste
-  the one chance to find out whether the contract survives a hard module. If the shell
-  turns out to be too tight, that *is* the finding, and it gets fixed in the shell
-  once, for every module.
-- **Do not build a catalogue of named "scientific components" up front.** The rule in
-  §1 holds: born in the module, copied on the second, promoted on the third. What
-  repeats between `orbital-sandbox` and the rocket is what earns a place in
-  `components/lab/` — that harvest is a step of its own, after the rocket works.
-- **Navigation, naming and "explore by phenomenon" wait.** They are good ideas that
-  need content; with one module they would render empty categories. The taxonomy
-  (`Topic`) already supports them, so they stay cheap later.
+**The harvest happened on its own.** All three modules import `ParameterPanel`,
+`ReadoutGrid`, `RunRecorder` and `LineChart`; `SimulationControls` is shared by the two
+that step through time. The §1 rule played out as written — nothing was abstracted on
+the first occurrence, and what repeated across three modules is what sits in
+`components/lab/` today. There is no pending harvest to schedule; there is a rule to
+keep applying.
 
-Planned order: rocket anatomy (SVG, hotspots, narrative sections) → live simulation in
-the same module → experiment comparison, fork and sharing (`is_public` + the UUID are
-already there) → harvest into `components/lab/`.
+**What is left of that plan is comparing, forking and sharing runs.** `is_public` and
+the UUID are on `SimulationRun`, the policy and the resource expose them, and
+`lib/api/types.ts` already knows the shape — and there is no screen anywhere. It is the
+same shape as the write path that `RunRecorder` closed on 31/08: the backend was ready
+for weeks and the interface never called it.
 
-One open question for the anatomy step: **scientific narrative** — question,
-hypothesis, experiment, result, explanation — has a data shape, not just a layout.
-`module_sections` and `SectionKind {text, formula, figure, callout, reference}`
-already exist. Decide deliberately whether the narrative becomes new enum cases or
-rides on the module's `spec`, which already passes unknown keys through.
+Still true, and still worth pushing back on:
+
+- **No new infrastructure, no new ADRs, no new libraries** until a real problem demands
+  one. `ARCHITECTURE.md` §7 already lists what is deliberately out.
+- **Do not build a catalogue of named "scientific components" up front.** The rule in §1
+  is what filled `components/lab/`, and it is what should keep filling it: born in the
+  module, copied on the second, promoted on the third.
+- **Navigation, naming and "explore by phenomenon"** are cheaper than they were with one
+  module, but they are still content-hungry: three published modules and one draft do
+  not fill a taxonomy. `Topic` already supports them, so they stay cheap later.
+
+The open question from the anatomy step got a **pragmatic answer, not a decided one**:
+scientific narrative — question, hypothesis, experiment, result, explanation — rode on
+the `spec` (which passes unknown keys through) plus `module_sections` using the
+`SectionKind` cases that already existed: `Text`, `Formula`, `Callout`. No new enum case
+was added. If a third module needs the same narrative shape, that is the moment to
+decide whether it deserves its own kind instead of the spec.
 
 ---
 
@@ -275,7 +295,7 @@ every line that ends in one.
 
 ## 6. Where to start, by task
 
-Read only what the task calls for. Reading all thirteen ADRs end to end is wasted
+Read only what the task calls for. Reading all fourteen ADRs end to end is wasted
 effort for most tasks.
 
 | If the task is… | Read first | Then |
