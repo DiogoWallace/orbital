@@ -212,6 +212,7 @@ in project `006b6c34-4faf-4e09-92e0-22df896cb0f2` (`Orbital - Redesign.dc.html`)
 | `docker/caddy/Caddyfile` | edge TLS, routing, `handle_errors` with a static page for when the Next upstream is down |
 | `deploy/*.sh` | `bootstrap` (one-time VPS hardening), `deploy`, `backup`, `install-cron`, `remote-setup` |
 | `.githooks/commit-msg` | strips AI attribution, refuses a title outside `docs/CONVENCOES-DE-COMMIT.md`; inert until `core.hooksPath` points at it, which it does on this machine since 02/09 |
+| `.gitattributes` · `.editorconfig` | line-ending and editor guards, partial on purpose — no `* text=auto`, `*.csv` frozen, `apps/api/` on Laravel's own pair |
 | `.gitmessage` | commit template — the format, the types and the scopes, in the editor |
 | `.github/pull_request_template.md` | what changes, why, how to verify, plus the three checks that already cost time |
 | `.github/workflows/ci.yml` | three jobs — API (Pest + Pint against real Postgres), web (typecheck, Vitest, lint), images (GHCR, main only, green only) |

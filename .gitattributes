@@ -1,0 +1,52 @@
+# Guarda de fim de linha e de diff.
+#
+# Deliberadamente conservador: **não** há `* text=auto` aqui. Normalizar o
+# repositório inteiro reescreveria arquivos que já estão commitados como estão,
+# e o ganho não paga o ruído. O que este arquivo faz é fixar LF onde o `\r`
+# quebra de verdade, e congelar o que não deve ser tocado.
+#
+# `apps/api/` tem o `.gitattributes` próprio do Laravel, com `* text=auto
+# eol=lf`, e continua valendo lá: o arquivo mais próximo do caminho vence.
+
+# ---------------------------------------------------------------------------
+# Onde o \r quebra de verdade
+#
+# Em `.sh` o shell não executa e devolve `$'\r': command not found`. Em `.env` o
+# `\r` entra no *valor* da variável e estoura cabeçalho HTTP e `hash_equals`,
+# sem mensagem útil. Em Python de hook e de ferramenta, quebra o shebang.
+*.sh                    text eol=lf
+*.py                    text eol=lf
+*.conf                  text eol=lf
+*.sql                   text eol=lf
+.env*                   text eol=lf
+Makefile                text eol=lf
+Dockerfile*             text eol=lf
+.githooks/*             text eol=lf
+docker/caddy/Caddyfile  text eol=lf
+
+# ---------------------------------------------------------------------------
+# Dados: byte a byte como estão
+#
+# `tools/brenda/dados/manifesto.csv` está commitado com CRLF vindo do Python, e
+# o leitor já tolera isso desde o 35f4ef2. Normalizar reescreveria dado
+# histórico para não ganhar nada — e dado versionado existe aqui para tornar o
+# treino reproduzível, não para ficar bonito no diff.
+*.csv                   -text
+
+# ---------------------------------------------------------------------------
+# Binários: sem conversão e sem diff textual
+*.webp   binary
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.ico    binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.pdf    binary
+
+# ---------------------------------------------------------------------------
+# Diff mais legível (cabeçalho de função nos hunks)
+*.md     diff=markdown
+*.css    diff=css
+*.html   diff=html

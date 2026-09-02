@@ -188,9 +188,14 @@ Working on this repo from a Windows session, three things fail *silently*:
    `hash_equals` with no useful message; a BOM before a YAML `---` makes frontmatter
    stop being recognized without any error.
 
-   **This repository has no `.gitattributes` and no `.editorconfig`.** There is no
-   guard. Adding `* text=auto eol=lf` and `charset = utf-8` here is a small, real
-   improvement worth proposing.
+   **Since 02/09 there is a guard, and it is partial on purpose.** The root
+   `.gitattributes` pins `eol=lf` only where the `\r` breaks something — `*.sh`,
+   `*.py`, `*.conf`, `*.sql`, `.env*`, `Makefile`, `Dockerfile*`, `.githooks/*`,
+   the `Caddyfile` — and freezes `*.csv` with `-text`. There is no `* text=auto`:
+   normalizing the whole tree would rewrite files that are already committed as they
+   are, so **a `.ts`/`.tsx` written from Windows can still land with CRLF**. Check
+   with `git ls-files --eol <path>` before assuming. `apps/api/` answers to Laravel's
+   own `.gitattributes` instead, which is closer to those files and therefore wins.
 
 Writing files through the UNC path `\\wsl.localhost\Ubuntu\home\diogo\projects\orbital`
 works well and is the preferred route; verify line endings afterwards with

@@ -287,9 +287,18 @@ to move together.
 **17. Files edited from Windows arrive with CRLF, and PowerShell writes UTF-8 with
 BOM.** In `.sh` that is `$'\r': command not found`; in `.env` the `\r` lands inside the
 variable *value* and breaks HTTP headers and `hash_equals` with no useful message.
-**This repo has no `.gitattributes` and no `.editorconfig`** — unlike `hgelo`, there is
-no guard here. After any write from the Windows side, normalize line endings **from a
-script file**, never from an inline `sed` passed through `wsl.exe`: the `\r` in the
+Since 02/09 the repo **does** have a guard, and it is deliberately partial:
+`.gitattributes` pins `eol=lf` on `*.sh`, `*.py`, `*.conf`, `*.sql`, `.env*`,
+`Makefile`, `Dockerfile*`, `.githooks/*` and the `Caddyfile` — the places where the
+`\r` actually breaks something — and there is **no `* text=auto`**, so nothing else
+gets renormalized. `*.csv` is frozen with `-text` because
+`tools/brenda/dados/manifesto.csv` is committed with CRLF from Python and the reader
+already tolerates it. `apps/api/` keeps Laravel's own `.gitattributes` (`* text=auto
+eol=lf`), which wins there by being closer to the file. `.editorconfig` at the root
+covers the rest, and `apps/api/.editorconfig` declares `root = true`, so the two never
+meet. A `.tsx` written from Windows can still arrive with CRLF — that was the price of
+not renormalizing. After any write from the Windows side, normalize line endings
+**from a script file**, never from an inline `sed` passed through `wsl.exe`: the `\r` in the
 expression gets mangled into a literal `r` and silently eats the last character of
 every line that ends in one.
 

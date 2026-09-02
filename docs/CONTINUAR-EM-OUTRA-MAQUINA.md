@@ -142,8 +142,11 @@ outros projetos WSL. Se colidirem na máquina nova, todas são variáveis do
 `DiogoWallace`. Push funciona; `gh auth status` parece a conta errada.
 
 **Trabalhar pelo Windows sobre arquivos do WSL** tem três armadilhas que falham
-em silêncio, e o repositório não tem `.gitattributes` para proteger:
-`$PWD` reescrito em bind mount do Docker, argumentos corrompidos ao passar por
-`wsl.exe`, e CRLF gravado por editor do Windows. As três se resolvem do mesmo
+em silêncio: `$PWD` reescrito em bind mount do Docker, argumentos corrompidos ao
+passar por `wsl.exe`, e CRLF gravado por editor do Windows. O `.gitattributes` da
+raiz cobre só a terceira, e só onde ela quebra alguma coisa — `.sh`, `.py`, `.env`,
+`Makefile`, `Dockerfile`, `.conf`, `.sql` e os hooks. Fora dessa lista não há
+proteção, de propósito: normalizar o repositório inteiro reescreveria arquivo já
+commitado. As três se resolvem do mesmo
 jeito — pôr a lógica num arquivo `.sh` e chamar o arquivo. Detalhe em
 `.claude/skills/orbital/references/environment.md`.

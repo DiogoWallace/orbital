@@ -1,0 +1,33 @@
+# Convenções de editor, para o arquivo já nascer certo em vez de ser
+# consertado depois pelo `.gitattributes`.
+#
+# `apps/api/` tem o `.editorconfig` do Laravel, e ele declara `root = true` — o
+# editor para de subir ao encontrá-lo. Este arquivo não alcança o Laravel e não
+# conflita com ele.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Em Markdown, dois espaços no fim da linha são quebra significativa.
+[*.md]
+trim_trailing_whitespace = false
+
+[*.py]
+indent_size = 4
+
+# O hook é Python sem extensão.
+[.githooks/*]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.{yml,yaml}]
+indent_size = 2
