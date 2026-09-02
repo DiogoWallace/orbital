@@ -93,6 +93,115 @@ export function signalToNoise(curve: LightCurve, candidate: TransitCandidate): n
   return candidate.depth / (desvio / Math.sqrt(dentro));
 }
 
+/**
+ * Média do fluxo numa janela de fase, e quantos pontos caíram nela.
+ *
+ * `centro` e `meiaLargura` são em fase (fração do período), não em dias.
+ */
+function mediaNaFase(
+  curve: LightCurve,
+  candidate: TransitCandidate,
+  centro: number,
+  meiaLargura: number,
+): { media: number; pontos: number } {
+  let soma = 0;
+  let pontos = 0;
+
+  for (let i = 0; i < curve.time.length; i += 1) {
+    const ciclos = (curve.time[i] - candidate.epoch) / candidate.period + 0.5;
+    const fase = ciclos - Math.floor(ciclos) - 0.5;
+
+    // Distância circular até o centro: a fase dá a volta, então 0,49 e -0,49
+    // são vizinhas, não opostas.
+    const bruta = Math.abs(fase - centro);
+    const distancia = Math.min(bruta, 1 - bruta);
+
+    if (distancia <= meiaLargura) {
+      soma += curve.flux[i];
+      pontos += 1;
+    }
+  }
+
+  return { media: pontos > 0 ? soma / pontos : Number.NaN, pontos };
+}
+
+/**
+ * Profundidade do eclipse secundário, em fração do fluxo.
+ *
+ * Procura uma queda na fase 0,5 — meio período depois do evento principal. Um
+ * planeta não produz uma; uma estrela companheira sim, ao passar por trás da
+ * principal. É o discriminador mais direto entre trânsito e binária eclipsante.
+ *
+ * Devolve 0 quando não há queda ali, e nunca negativo: um *aumento* de brilho
+ * na fase oposta não é eclipse secundário.
+ */
+export function secondaryDepth(curve: LightCurve, candidate: TransitCandidate): number {
+  const meiaLargura = candidate.durationDays / candidate.period / 2;
+
+  const secundario = mediaNaFase(curve, candidate, 0.5, meiaLargura);
+  // Base medida longe dos dois eventos, para não contaminar a referência.
+  const base = mediaNaFase(curve, candidate, 0.25, meiaLargura);
+
+  if (!Number.isFinite(secundario.media) || !Number.isFinite(base.media)) return 0;
+
+  return Math.max(base.media - secundario.media, 0);
+}
+
+/**
+ * Diferença entre a profundidade dos eventos pares e a dos ímpares.
+ *
+ * Se o período verdadeiro for o dobro do encontrado — o caso de uma binária
+ * cujas duas estrelas se eclipsam alternadamente —, os eventos alternam de
+ * profundidade, e dobrar no período errado empilha os dois tipos no mesmo lugar.
+ * Separá-los revela a alternância.
+ *
+ * Devolve a diferença relativa à profundidade média. Perto de zero para um
+ * trânsito planetário; grande para a binária mal identificada.
+ */
+export function oddEvenDifference(
+  curve: LightCurve,
+  candidate: TransitCandidate,
+): number {
+  const meia = candidate.durationDays / 2;
+
+  let somaPar = 0;
+  let pontosPar = 0;
+  let somaImpar = 0;
+  let pontosImpar = 0;
+  let somaFora = 0;
+  let pontosFora = 0;
+
+  for (let i = 0; i < curve.time.length; i += 1) {
+    const decorrido = (curve.time[i] - candidate.epoch) / candidate.period;
+    const ciclo = Math.round(decorrido);
+    const distancia = Math.abs(decorrido - ciclo) * candidate.period;
+
+    if (distancia <= meia) {
+      if (Math.abs(ciclo % 2) === 0) {
+        somaPar += curve.flux[i];
+        pontosPar += 1;
+      } else {
+        somaImpar += curve.flux[i];
+        pontosImpar += 1;
+      }
+    } else if (Math.abs(decorrido - ciclo) > 0.2) {
+      somaFora += curve.flux[i];
+      pontosFora += 1;
+    }
+  }
+
+  if (pontosPar === 0 || pontosImpar === 0 || pontosFora === 0) return 0;
+
+  const base = somaFora / pontosFora;
+  const profundidadePar = base - somaPar / pontosPar;
+  const profundidadeImpar = base - somaImpar / pontosImpar;
+  const media = (profundidadePar + profundidadeImpar) / 2;
+
+  if (media <= 0) return 0;
+
+  return Math.abs(profundidadePar - profundidadeImpar) / media;
+}
+
 export interface AnalysisOptions {
   /** Janela da mediana móvel, em dias. */
   detrendWindowDays: number;
@@ -115,6 +224,10 @@ export interface AnalysisResult {
   folded: FoldedCurve | null;
   /** Relação sinal/ruído do candidato. Zero sem candidato. */
   snr: number;
+  /** Profundidade do eclipse secundário — o discriminador de binária. */
+  secondaryDepth: number;
+  /** Alternância entre eventos pares e ímpares, relativa à profundidade. */
+  oddEven: number;
 }
 
 export function analyse(
@@ -133,5 +246,7 @@ export function analyse(
     candidate,
     folded: candidate ? foldCurve(achatada, candidate.period, candidate.epoch) : null,
     snr: candidate ? signalToNoise(achatada, candidate) : 0,
+    secondaryDepth: candidate ? secondaryDepth(achatada, candidate) : 0,
+    oddEven: candidate ? oddEvenDifference(achatada, candidate) : 0,
   };
 }

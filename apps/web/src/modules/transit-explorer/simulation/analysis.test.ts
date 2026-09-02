@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { analyse, foldCurve, signalToNoise } from "./analysis";
+import {
+  analyse,
+  foldCurve,
+  oddEvenDifference,
+  secondaryDepth,
+  signalToNoise,
+} from "./analysis";
 import { detrend, medianInPlace, movingMedian, windowPointsFor } from "./detrend";
 import { generateLightCurve, randomSource, transitShape } from "./synthetic";
 
@@ -280,6 +286,99 @@ describe("relação sinal/ruído", () => {
         epoch: 0,
       }),
     ).toBe(0);
+  });
+});
+
+describe("metricas de vetting", () => {
+  const candidato = {
+    period: 1.3,
+    power: 1,
+    depth: 0.12,
+    durationDays: 2 / 24,
+    epoch: 0.4,
+  };
+
+  it("acha o eclipse secundario de uma binaria", function () {
+    const binaria = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.12,
+      secondaryDepth: 0.03,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    // Recupera boa parte da profundidade injetada: a janela de fase e a mesma
+    // do evento principal, e o secundario e mais raso.
+    expect(secondaryDepth(binaria, candidato)).toBeGreaterThan(0.015);
+  });
+
+  it("nao inventa secundario onde so ha transito", function () {
+    const planeta = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.12,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    expect(secondaryDepth(planeta, candidato)).toBeLessThan(0.002);
+  });
+
+  it("nunca devolve secundario negativo", function () {
+    // Um *aumento* de brilho na fase oposta nao e eclipse.
+    const clarao = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.12,
+      secondaryDepth: -0.03,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    expect(secondaryDepth(clarao, candidato)).toBe(0);
+  });
+
+  it("mede alternancia perto de zero num transito de verdade", function () {
+    const planeta = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    expect(
+      oddEvenDifference(planeta, { ...candidato, depth: 0.02 }),
+    ).toBeLessThan(0.05);
+  });
+
+  it("acusa alternancia quando eventos pares e impares diferem", function () {
+    // Uma binaria dobrada em metade do periodo verdadeiro: os eventos
+    // alternam de profundidade, porque sao eclipses de estrelas diferentes.
+    const alternada = generateLightCurve({
+      ...CURTA,
+      period: 2.6,
+      depth: 0.12,
+      secondaryDepth: 0.04,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+    // Analisada com metade do periodo, o secundario cai nos ciclos impares.
+    expect(
+      oddEvenDifference(alternada, { ...candidato, period: 1.3 }),
+    ).toBeGreaterThan(0.3);
   });
 });
 
