@@ -37,7 +37,10 @@ through untouched (ADR 0006, `moduleSpecSchema.passthrough()`):
 
 - `parameters[]` → becomes the control panel by itself. You never write a slider: you
   declare the variable and the core builds the control, the unit, the number format and
-  the accessibility.
+  the accessibility. **Only `type: "number"` draws anything today** — the schema accepts
+  `boolean` and `choice`, and `ParameterPanel` returns `null` for both, silently. Either
+  implement the missing type in the core on purpose, or keep that input out of
+  `parameters`.
 - `presets[]` → the row of scenario shortcuts.
 - `outputs[]` → the readout grid.
 - `charts[]` → the chart strip.
@@ -64,13 +67,28 @@ component loads. Values: `simulation`, `dataset`, `3d`, `timeline`, `hotspots`.
 from `useSimulationLoop`, never from a raw `requestAnimationFrame` inside the
 component. Copy the shape of `orbital-sandbox/simulation/orbit.ts` and its test.
 
-**5. One line in `apps/web/src/modules/registry.ts`:**
+**5. Saving a run**, if there is a scenario worth citing later. The panel comes from
+the `spec` on its own; this one does not — mount it in `Module.tsx`:
+
+```tsx
+<RunRecorder
+  moduleSlug={module.slug}
+  parameters={values}
+  summary={readout.values}
+  modelVersion={spec.modelVersion}
+/>
+```
+
+What goes up is the pair that makes the result reproducible — parameters and the model
+version that read them (ADR 0014). A static visualization skips this and is right to.
+
+**6. One line in `apps/web/src/modules/registry.ts`:**
 
 ```ts
 "rocket-anatomy": () => import("./rocket-anatomy"),
 ```
 
-**6. Run:**
+**7. Run:**
 
 ```bash
 docker compose exec api php artisan migrate:fresh --seed
