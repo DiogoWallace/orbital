@@ -29,12 +29,20 @@ import type { LightCurve } from "./synthetic";
 const PASTA = process.env.ORBITAL_LOTE;
 
 function lerCsv(caminho: string): Record<string, string>[] {
-  const linhas = readFileSync(caminho, "utf-8").trim().split("\n");
+  // O módulo `csv` do Python termina linha em CRLF por padrão, mesmo no Linux.
+  // Sem remover o `\r`, o último nome de coluna vira `arquivo\r` e a leitura
+  // devolve `undefined` sem erro nenhum — o tipo de falha que só aparece três
+  // camadas depois.
+  const linhas = readFileSync(caminho, "utf-8")
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter(Boolean);
+
   const cabecalho = linhas[0].split(",");
 
   return linhas.slice(1).map((linha) => {
-    // O manifesto é escrito pelo `csv` do Python e não tem vírgula dentro de
-    // campo — uma divisão simples basta, e evita um parser inteiro aqui.
+    // O manifesto não tem vírgula dentro de campo — uma divisão simples basta,
+    // e evita um parser inteiro aqui.
     const celulas = linha.split(",");
 
     return Object.fromEntries(cabecalho.map((chave, i) => [chave, celulas[i] ?? ""]));
