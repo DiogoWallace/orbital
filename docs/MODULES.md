@@ -82,6 +82,23 @@ O núcleo entende quatro chaves e ignora todo o resto (ADR 0006):
 slider: declara a variável e o núcleo monta o controle, a unidade, o formato
 numérico e a acessibilidade.
 
+> ⚠️ **Só `type: "number"` desenha alguma coisa hoje.** O schema aceita
+> `number`, `boolean` e `choice` (`src/modules/types.ts`), mas o
+> `ParameterPanel` faz `if (parameter.type !== "number") return null`. Um
+> parâmetro `choice` passa na validação, some da tela e não avisa ninguém.
+>
+> Se o seu módulo precisa mesmo de um, implemente o tipo no núcleo — é núcleo
+> faltando, não módulo especial. Se não precisa, mantenha a entrada fora de
+> `parameters`.
+>
+> Escolha de **dado** (qual dataset) fica fora de `parameters` de qualquer
+> jeito, por ADR 0014: qual dado e como ele é analisado são elos diferentes da
+> cadeia.
+
+`modelVersion` não é decoração: é ele que vai gravado com cada execução salva e
+o que permite dizer, meses depois, qual versão da física produziu aquele
+número. Suba a versão quando mudar o que o módulo calcula.
+
 ---
 
 ## 2. Experiência: a pasta do módulo
@@ -123,6 +140,31 @@ Isso não é purismo — é o que permite:
 
 Veja `src/modules/orbital-sandbox/simulation/orbit.ts` e seu teste como
 referência.
+
+### Guardar a execução é uma linha, mas é sua
+
+O painel de parâmetros nasce do `spec` sozinho; o botão de guardar, não. Se o
+módulo tem cenário que valha citar depois, o `Module.tsx` monta o componente do
+núcleo:
+
+```tsx
+import { RunRecorder } from "@/components/lab/RunRecorder";
+
+<RunRecorder
+  moduleSlug={module.slug}
+  parameters={values}
+  summary={readout.values}
+  modelVersion={spec.modelVersion}
+/>
+```
+
+O que sobe é o par que torna o resultado reproduzível — parâmetros e versão do
+modelo (ADR 0014). O `summary` viaja junto só para quem abrir a lista depois ver
+o desfecho sem reabrir a simulação. `disabled` existe para o módulo recusar o
+momento, no meio de uma integração por exemplo.
+
+Módulo que não tem estado que valha guardar — um visualizador estático — não
+monta o componente, e está certo.
 
 ---
 
@@ -184,9 +226,15 @@ Abstrair na primeira ocorrência é como se cria a abstração errada.
 ## Checklist
 
 - [ ] Linha no `ModuleSeeder` com `component_key` e `spec`
+- [ ] `parameters` só com `type: "number"` — ou o tipo que falta implementado no
+      núcleo, com intenção
+- [ ] `modelVersion` no `spec`, e ele sobe quando a física muda
 - [ ] Pasta em `src/modules/<key>/` com `index.ts` e `Module.tsx`
 - [ ] Física em `simulation/`, sem React
 - [ ] Teste da física em `simulation/*.test.ts`
+- [ ] `RunRecorder` montado, se há cenário que valha guardar
 - [ ] Linha no `registry.ts`
 - [ ] `npm run test` e `npm run typecheck` passando
 - [ ] Módulo abre em `/modulos/<slug>` e o painel aparece a partir do `spec`
+- [ ] **Nenhum arquivo fora de `src/modules/<key>/` mudou** — se mudou, falta uma
+      abstração no núcleo, e isso se discute antes do commit

@@ -280,7 +280,9 @@ return null` — so a module declaring a choice parameter gets a control that si
 does not render. Either implement the missing types in the core when a module actually
 needs them, or keep that input out of `parameters`. Note that data selection (which
 dataset) belongs outside `parameters` anyway, by ADR 0014: which data and how it is
-analysed are different links in the chain.
+analysed are different links in the chain. This trap is now written where someone
+adding a module will meet it — `docs/MODULES.md`, the `spec` section — so the two have
+to move together.
 
 **17. Files edited from Windows arrive with CRLF, and PowerShell writes UTF-8 with
 BOM.** In `.sh` that is `$'\r': command not found`; in `.env` the `\r` lands inside the
