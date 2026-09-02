@@ -34,7 +34,14 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      # As actions estão nos majores que rodam em Node 24. O GitHub deprecou o
+      # Node 20 e já força o 24 nas que ainda o declaram; quando o fallback
+      # sair, versão velha para de rodar. Os majores novos exigem runner
+      # >= 2.327.1, o que o `ubuntu-latest` hospedado satisfaz — a ressalva das
+      # notas de release vale para runner auto-hospedado, que aqui não existe.
+      #
+      # `setup-php@v2` fica: o major é esse mesmo, e a v2 atual já é Node 24.
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -47,7 +54,7 @@ jobs:
           PGPASSWORD=secret psql -h localhost -U orbital -d orbital_test \
             -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent; CREATE EXTENSION IF NOT EXISTS citext;'
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
         with:
           working-directory: apps/api
 
@@ -76,9 +83,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -126,7 +133,7 @@ jobs:
             dockerfile: docker/nginx/Dockerfile.prod
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # `github.repository_owner` preserva a capitalização da conta, e o
       # registry recusa maiúsculas no nome. Normalizamos aqui em vez de fixar
@@ -135,15 +142,15 @@ jobs:
         id: owner
         run: echo "slug=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
