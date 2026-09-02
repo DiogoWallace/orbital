@@ -46,6 +46,7 @@ class DatasetResource extends JsonResource
                 'instrument' => $this->instrument,
                 'pipeline' => $this->pipeline,
                 'product' => $this->product,
+                'qualityMask' => $this->quality_mask,
                 'archive' => $this->source_archive,
                 'file' => $this->source_file,
                 'sha256' => $this->sha256,

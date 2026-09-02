@@ -91,6 +91,12 @@ def main() -> None:
         help="Tempo de exposicao em segundos: 120 e a cadencia de 2 minutos",
     )
     parser.add_argument(
+        "--mascara",
+        default="default",
+        choices=["none", "default", "hard", "hardest"],
+        help="Mascara de qualidade do lightkurve. Fica gravada na procedencia.",
+    )
+    parser.add_argument(
         "--rotulo",
         default=None,
         help="Nome curto do caso, por exemplo 'transito-raso'",
@@ -142,7 +148,7 @@ def main() -> None:
     # `quality_bitmask="hardest"` descarta os pontos que o pipeline marcou como
     # suspeitos. Para busca de transito isso e o certo: um artefato deixado na
     # curva vira um "transito" convincente.
-    curva = busca[0].download(quality_bitmask="hardest", flux_column="pdcsap_flux")
+    curva = busca[0].download(quality_bitmask=args.mascara, flux_column="pdcsap_flux")
 
     caminho_fits = Path(busca[0].table["productFilename"][0])
     arquivo_local = Path(curva.meta.get("FILENAME", "")) if curva.meta.get("FILENAME") else None
@@ -177,6 +183,10 @@ def main() -> None:
             "sha256": somar_arquivo(arquivo_local) if arquivo_local and arquivo_local.exists() else None,
             "arquivo": "MAST — Mikulski Archive for Space Telescopes",
             "obtidoEm": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            # Decisao de processamento, nao ajuste: a mascara descarta
+            # cadencias e muda o dado. Sem este campo, duas curvas do mesmo
+            # FITS com mascaras diferentes ficam indistinguiveis (ADR 0014).
+            "mascaraQualidade": args.mascara,
             "citacao": CITACOES.get(
                 "TESS",
                 "PREENCHER: ver termos de reconhecimento do arquivo de origem",

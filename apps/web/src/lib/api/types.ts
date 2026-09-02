@@ -222,6 +222,8 @@ export interface DatasetProvenance {
   instrument: string;
   pipeline: string | null;
   product: string | null;
+  /** Máscara de qualidade aplicada — muda quais cadências entraram. */
+  qualityMask: string | null;
   archive: string;
   file: string | null;
   sha256: string | null;

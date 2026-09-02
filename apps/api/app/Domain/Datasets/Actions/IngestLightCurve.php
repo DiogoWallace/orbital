@@ -40,6 +40,7 @@ final class IngestLightCurve
                     'instrument' => $curva->instrument,
                     'pipeline' => $curva->pipeline,
                     'product' => $curva->product,
+                    'quality_mask' => $curva->qualityMask,
                     'target' => $curva->target,
                     'external_id' => $curva->externalId,
                     'sector' => $curva->sector,

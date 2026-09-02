@@ -42,6 +42,8 @@ final class LightCurveData extends Data
         public string $sourceArchive,
         public ?string $pipeline = null,
         public ?string $product = null,
+        /** Mascara de qualidade aplicada na leitura do FITS. */
+        public ?string $qualityMask = null,
         public ?string $externalId = null,
         public ?int $sector = null,
         public ?int $cadenceSeconds = null,
@@ -79,6 +81,7 @@ final class LightCurveData extends Data
             sourceArchive: (string) ($procedencia['arquivo'] ?? 'desconhecido'),
             pipeline: $procedencia['pipeline'] ?? null,
             product: $procedencia['produto'] ?? null,
+            qualityMask: $procedencia['mascaraQualidade'] ?? null,
             externalId: isset($procedencia['tic']) ? (string) $procedencia['tic'] : null,
             sector: isset($procedencia['setor']) ? (int) $procedencia['setor'] : null,
             cadenceSeconds: isset($procedencia['cadenciaSegundos'])

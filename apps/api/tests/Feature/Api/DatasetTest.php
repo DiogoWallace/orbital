@@ -30,6 +30,7 @@ function curvaDeTeste(array $sobrescreve = []): LightCurveData
         'sourceArchive' => 'MAST',
         'pipeline' => 'SPOC',
         'product' => 'PDCSAP_FLUX',
+        'qualityMask' => 'default',
         'externalId' => '256364928',
         'sector' => 54,
         'cadenceSeconds' => 120,
@@ -50,6 +51,7 @@ function curvaDeTeste(array $sobrescreve = []): LightCurveData
         sourceArchive: $v['sourceArchive'],
         pipeline: $v['pipeline'],
         product: $v['product'],
+        qualityMask: $v['qualityMask'],
         externalId: $v['externalId'],
         sector: $v['sector'],
         cadenceSeconds: $v['cadenceSeconds'],
@@ -175,7 +177,8 @@ describe('leitura pública', function () {
             ->assertJsonPath('data.citable', true)
             ->assertJsonPath('data.provenance.mission', 'tess')
             ->assertJsonPath('data.provenance.missionLabel', 'TESS')
-            ->assertJsonPath('data.provenance.archive', 'MAST');
+            ->assertJsonPath('data.provenance.archive', 'MAST')
+            ->assertJsonPath('data.provenance.qualityMask', 'default');
 
         expect($resposta->json('data.provenance.sha256'))->toHaveLength(64)
             ->and($resposta->json('data.provenance.retrievedAt'))->not->toBeNull();

@@ -589,6 +589,7 @@ function Procedencia({ dataset }: { dataset: Dataset }) {
     ["Missão", dataset.provenance.missionFullName],
     ["Instrumento", dataset.provenance.instrument],
     ["Produto", dataset.provenance.product],
+    ["Máscara", dataset.provenance.qualityMask],
     ["Arquivo", dataset.provenance.archive],
     ["Setor", dataset.sector !== null ? String(dataset.sector) : null],
     [

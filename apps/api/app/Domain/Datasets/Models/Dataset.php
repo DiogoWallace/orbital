@@ -36,6 +36,7 @@ class Dataset extends Model
         'instrument',
         'pipeline',
         'product',
+        'quality_mask',
         'target',
         'external_id',
         'sector',

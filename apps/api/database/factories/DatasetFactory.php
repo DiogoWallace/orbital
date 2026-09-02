@@ -30,6 +30,7 @@ class DatasetFactory extends Factory
             'instrument' => 'TESS Photometer',
             'pipeline' => 'SPOC',
             'product' => 'PDCSAP_FLUX',
+            'quality_mask' => 'default',
             'target' => "TIC {$tic}",
             'external_id' => $tic,
             'sector' => $sector,

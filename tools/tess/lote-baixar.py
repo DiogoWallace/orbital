@@ -153,7 +153,9 @@ def setor_util(tic: str) -> int | None:
     return setores[0] if setores else None
 
 
-def baixar(tic: str, setor: int, destino: Path, citacao: str) -> dict | None:
+def baixar(
+    tic: str, setor: int, destino: Path, citacao: str, mascara: str = "default"
+) -> dict | None:
     import lightkurve as lk
 
     busca = lk.search_lightcurve(
@@ -163,7 +165,7 @@ def baixar(tic: str, setor: int, destino: Path, citacao: str) -> dict | None:
     if len(busca) == 0:
         return None
 
-    curva = busca[0].download(quality_bitmask="hardest", flux_column="pdcsap_flux")
+    curva = busca[0].download(quality_bitmask=mascara, flux_column="pdcsap_flux")
     normalizada = curva.remove_nans().normalize()
 
     pares = [
@@ -191,6 +193,17 @@ def baixar(tic: str, setor: int, destino: Path, citacao: str) -> dict | None:
             "cadenciaSegundos": 120,
             "arquivo": "MAST — Mikulski Archive for Space Telescopes",
             "citacao": citacao,
+            # A mascara de qualidade e decisao de processamento, nao ajuste de
+            # conveniencia: ela descarta cadencias e muda o dado. Duas curvas do
+            # mesmo FITS com mascaras diferentes SAO dados diferentes, e sem
+            # este campo nada distingue uma da outra depois (ADR 0014).
+            #
+            # `hardest` descarta cadencia marcada por qualquer flag e chega a
+            # jogar fora 30-38% da serie; `default` e o conjunto que o proprio
+            # pipeline SPOC recomenda. A S/R de um transito cresce com a raiz do
+            # numero de pontos dentro dele, entao mascara agressiva custa
+            # deteccao justamente no caso raso.
+            "mascaraQualidade": mascara,
         },
         "pontos": len(pares),
         "tempo": [round(t - t0, 8) for t, _ in pares],
@@ -205,6 +218,12 @@ def main() -> None:
     parser.add_argument("--saida", required=True)
     parser.add_argument("--tmag-max", type=float, default=12.0)
     parser.add_argument("--pausa", type=float, default=1.0, help="Segundos entre downloads")
+    parser.add_argument(
+        "--mascara",
+        default="default",
+        choices=["none", "default", "hard", "hardest"],
+        help="Mascara de qualidade do lightkurve. Fica gravada na procedencia.",
+    )
     parser.add_argument(
         "--so-selecionar",
         action="store_true",
@@ -286,7 +305,7 @@ def main() -> None:
                 continue
 
             try:
-                documento = baixar(tic, setor, arquivo, citacao)
+                documento = baixar(tic, setor, arquivo, citacao, args.mascara)
             except Exception as erro:  # noqa: BLE001
                 falhas.append({"tic": tic, "etapa": "download", "motivo": str(erro)[:120]})
                 print(f"  {tic} s{setor:02d} — FALHOU: {str(erro)[:60]}")
