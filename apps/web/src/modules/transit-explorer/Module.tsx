@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { LineChart } from "@/components/data/LineChart";
 import { ParameterPanel } from "@/components/lab/ParameterPanel";
@@ -8,6 +8,7 @@ import { ReadoutGrid } from "@/components/lab/ReadoutGrid";
 import { RunRecorder } from "@/components/lab/RunRecorder";
 import { Button } from "@/components/ui/Button";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import type { Dataset, DatasetSeries } from "@/lib/api/types";
 import {
   defaultValues,
   type ModuleComponentProps,
@@ -16,56 +17,170 @@ import {
 import { decimate } from "./data/decimate";
 import { OBSERVATION_WINDOW, TARGETS, TARGET_BY_KEY } from "./data/targets";
 import { analyse, type AnalysisResult } from "./simulation/analysis";
-import { generateLightCurve } from "./simulation/synthetic";
+import { generateLightCurve, type LightCurve } from "./simulation/synthetic";
 
 /**
  * Módulo "Trânsito de exoplanetas".
  *
- * Terceiro módulo, e o primeiro que **analisa** em vez de simular. A diferença
- * aparece na interação: não há laço a 60 fps nem transporte de play/pause. Há
- * um alvo, parâmetros de análise, e um comando explícito para executar.
+ * Analisa duas classes de curva, e a distinção entre elas é conteúdo, não
+ * detalhe de implementação:
  *
- * Essa escolha não é só de desempenho. Analisar é um ato: você configura um
- * método, roda, e o que sai vale ser guardado e citado. Recalcular sozinho a
- * cada arrastar de slider transformaria o resultado em efeito visual e apagaria
- * a fronteira entre configurar e concluir — que é exatamente a fronteira que o
- * ADR 0014 existe para proteger.
+ * **Observações** vêm de `datasets`, com procedência — missão, arquivo de
+ * origem, soma de verificação, data de obtenção. São dado real, e ninguém sabe
+ * a resposta de antemão.
  *
- * **O alvo não é um parâmetro.** Qual dado se analisa e como se analisa são
- * elos diferentes da cadeia de reprodutibilidade, e misturá-los no mesmo painel
- * embaralharia os dois. Quando os alvos reais chegarem, este seletor vira a
- * lista de `datasets` e o resto do módulo não muda.
+ * **Curvas de referência** são sintéticas, geradas aqui, e nelas a resposta é
+ * conhecida porque nós a injetamos. Servem para calibrar o olho antes de
+ * apontar o método para dado de verdade — e para responder "o método está
+ * errado ou o dado é difícil?", que sem elas é indistinguível.
+ *
+ * A procedência é renderizada junto do gráfico, e não escondida atrás de um
+ * link. É a mesma regra das imagens do Webb: dado sem crédito ao lado é uma
+ * dívida esperando vencer (ADR 0014).
  */
 
-/** Baldes de desenho: o suficiente para a forma, longe do limite do SVG. */
 const CHART_BUCKETS = 320;
+
+type Selecao =
+  | { tipo: "dataset"; chave: string }
+  | { tipo: "referencia"; chave: string };
 
 export default function TransitExplorerModule({ module, spec }: ModuleComponentProps) {
   const initialValues = useMemo(() => defaultValues(spec), [spec]);
 
-  const [targetKey, setTargetKey] = useState(TARGETS[0].key);
+  const [datasets, setDatasets] = useState<Dataset[] | null>(null);
+  const [selecao, setSelecao] = useState<Selecao>({
+    tipo: "referencia",
+    chave: TARGETS[0].key,
+  });
+
+  /**
+   * Série e falha carregam a chave do alvo a que pertencem, e o resultado
+   * também.
+   *
+   * É o que evita um efeito que limpa estado a cada troca de alvo: em vez de
+   * apagar, deriva-se. Trocar de alvo passa a ser uma comparação de chave, e
+   * não uma cascata de `setState` dentro de efeito — que além de proibido pelo
+   * lint tem o defeito real de renderizar uma vez com o resultado do alvo
+   * anterior ainda na tela.
+   */
+  const [serie, setSerie] = useState<{ chave: string; curva: LightCurve } | null>(null);
+  const [falha, setFalha] = useState<{ chave: string; mensagem: string } | null>(null);
+
   const [values, setValues] = useState<ParameterValues>(initialValues);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  /** Quais valores produziram o resultado que está na tela. */
-  const [analysedWith, setAnalysedWith] = useState<string | null>(null);
+  const [analise, setAnalise] = useState<
+    { chave: string; assinatura: string; dados: AnalysisResult } | null
+  >(null);
 
-  const target = TARGET_BY_KEY[targetKey] ?? TARGETS[0];
-
-  const curve = useMemo(
-    () => generateLightCurve({ ...OBSERVATION_WINDOW, ...target.options }),
-    [target],
+  const dataset = useMemo(
+    () =>
+      selecao.tipo === "dataset"
+        ? (datasets ?? []).find((item) => item.slug === selecao.chave) ?? null
+        : null,
+    [datasets, selecao],
   );
+
+  const referencia = selecao.tipo === "referencia" ? TARGET_BY_KEY[selecao.chave] : null;
+
+  // --- Catálogo de observações ---------------------------------------------
+  useEffect(() => {
+    let cancelado = false;
+
+    fetch("/api/datasets")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("falhou"))))
+      .then((payload: { data: Dataset[] }) => {
+        if (cancelado) return;
+
+        setDatasets(payload.data ?? []);
+
+        // Havendo observação, ela é o padrão: dado real vem primeiro, e a
+        // curva de referência é a que se escolhe deliberadamente.
+        if (payload.data?.length) {
+          setSelecao({ tipo: "dataset", chave: payload.data[0].slug });
+        }
+      })
+      .catch(() => {
+        // Catálogo indisponível não pode derrubar o módulo: as curvas de
+        // referência continuam servindo, e são justamente as que não dependem
+        // de rede.
+        if (!cancelado) setDatasets([]);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  /**
+   * A curva de referência é derivada, não buscada.
+   *
+   * Ela é determinística e barata: recalcular a partir da semente custa menos
+   * que guardar, e mantém a fonte única.
+   */
+  const curvaReferencia = useMemo(() => {
+    if (selecao.tipo !== "referencia") return null;
+
+    const caso = TARGET_BY_KEY[selecao.chave];
+
+    return caso ? generateLightCurve({ ...OBSERVATION_WINDOW, ...caso.options }) : null;
+  }, [selecao]);
+
+  const curva =
+    selecao.tipo === "referencia"
+      ? curvaReferencia
+      : serie?.chave === selecao.chave
+        ? serie.curva
+        : null;
+
+  const erroCurva = falha?.chave === selecao.chave ? falha.mensagem : null;
+  const carregando = selecao.tipo === "dataset" && curva === null && erroCurva === null;
+
+  // --- Busca da série observacional ----------------------------------------
+  useEffect(() => {
+    if (selecao.tipo !== "dataset") return;
+
+    const chave = selecao.chave;
+    let cancelado = false;
+
+    fetch(`/api/datasets/${encodeURIComponent(chave)}/series`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("falhou"))))
+      .then((payload: { data: DatasetSeries }) => {
+        if (cancelado) return;
+
+        setSerie({
+          chave,
+          curva: {
+            time: Float64Array.from(payload.data.time),
+            flux: Float64Array.from(payload.data.flux),
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setFalha({ chave, mensagem: "Não foi possível carregar esta série." });
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [selecao]);
 
   const assinatura = useMemo(
-    () => JSON.stringify({ targetKey, values }),
-    [targetKey, values],
+    () => JSON.stringify({ selecao, values }),
+    [selecao, values],
   );
 
-  const desatualizado = result !== null && analysedWith !== assinatura;
+  const result = analise?.chave === selecao.chave ? analise.dados : null;
+  const desatualizado = result !== null && analise?.assinatura !== assinatura;
 
   const executar = useCallback(() => {
-    setResult(
-      analyse(curve, {
+    if (!curva) return;
+
+    setAnalise({
+      chave: selecao.chave,
+      assinatura,
+      dados: analyse(curva, {
         detrendWindowDays: Number(values.detrendWindowDays ?? 0.5),
         bls: {
           minPeriod: Number(values.minPeriod ?? 0.5),
@@ -75,9 +190,8 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
           maxDuty: Number(values.maxDuty ?? 0.12),
         },
       }),
-    );
-    setAnalysedWith(assinatura);
-  }, [assinatura, curve, values]);
+    });
+  }, [assinatura, curva, selecao.chave, values]);
 
   const handleParameterChange = useCallback(
     (key: string, value: number | boolean | string) => {
@@ -99,27 +213,22 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
   const handleReset = useCallback(() => setValues(initialValues), [initialValues]);
 
   const bruta = useMemo(
-    () => decimate(curve.time, curve.flux, CHART_BUCKETS),
-    [curve],
+    () => (curva ? decimate(curva.time, curva.flux, CHART_BUCKETS) : []),
+    [curva],
   );
 
-  const achatada = useMemo(
-    () => (result ? decimate(result.detrended.time, result.detrended.flux, CHART_BUCKETS) : []),
-    [result],
-  );
-
-  const periodograma = useMemo(
-    () =>
-      result
-        ? decimate(result.periodogram.periods, result.periodogram.power, CHART_BUCKETS)
-        : [],
-    [result],
-  );
-
-  const dobrada = useMemo(
-    () => (result?.folded ? decimate(result.folded.phase, result.folded.flux, CHART_BUCKETS) : []),
-    [result],
-  );
+  const series: Record<string, ReturnType<typeof decimate>> = {
+    raw: bruta,
+    detrended: result
+      ? decimate(result.detrended.time, result.detrended.flux, CHART_BUCKETS)
+      : [],
+    periodogram: result
+      ? decimate(result.periodogram.periods, result.periodogram.power, CHART_BUCKETS)
+      : [],
+    folded: result?.folded
+      ? decimate(result.folded.phase, result.folded.flux, CHART_BUCKETS)
+      : [],
+  };
 
   const leituras: Record<string, number> = {
     period: result?.candidate?.period ?? 0,
@@ -129,65 +238,84 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
     power: (result?.candidate?.power ?? 0) * 1000,
   };
 
-  const series: Record<string, typeof bruta> = {
-    raw: bruta,
-    detrended: achatada,
-    periodogram: periodograma,
-    folded: dobrada,
-  };
-
   return (
     <div className="flex flex-col gap-5">
       <Panel>
         <PanelHeader
           title="Alvos"
-          description="Cinco curvas sintéticas. Nenhuma é observação real — as designações começam com SIN- por isso."
+          description="Observações reais com procedência, e curvas de referência em que a resposta é conhecida."
         />
-        <div className="flex flex-wrap gap-2 px-5 py-4">
-          {TARGETS.map((item) => {
-            const ativo = item.key === target.key;
 
-            return (
-              <button
+        <div className="flex flex-col gap-4 px-5 py-4">
+          <Grupo
+            titulo="Observações"
+            vazio={
+              datasets === null
+                ? "carregando…"
+                : "nenhuma série ingerida ainda — use as de referência abaixo"
+            }
+          >
+            {(datasets ?? []).map((item) => (
+              <Alvo
+                key={item.slug}
+                ativo={selecao.tipo === "dataset" && selecao.chave === item.slug}
+                codigo={item.provenance.missionLabel}
+                rotulo={item.title}
+                onClick={() => setSelecao({ tipo: "dataset", chave: item.slug })}
+              />
+            ))}
+          </Grupo>
+
+          <Grupo titulo="Curvas de referência (sintéticas)">
+            {TARGETS.map((item) => (
+              <Alvo
                 key={item.key}
-                type="button"
-                onClick={() => {
-                  setTargetKey(item.key);
-                  setResult(null);
-                  setAnalysedWith(null);
-                }}
-                aria-pressed={ativo}
-                className={
-                  ativo
-                    ? "rounded-[var(--radius-control)] border border-[var(--color-accent)] px-3 py-2 text-left text-xs text-[var(--color-accent-300)]"
-                    : "rounded-[var(--radius-control)] border border-[var(--color-line)] px-3 py-2 text-left text-xs text-[var(--color-neutral-400)] hover:border-[var(--color-line-strong)] hover:text-[var(--color-ink)]"
-                }
-              >
-                <span className="tabular block text-[10px] text-[var(--color-neutral-600)]">
-                  {item.designation}
-                </span>
-                {item.label}
-              </button>
-            );
-          })}
+                ativo={selecao.tipo === "referencia" && selecao.chave === item.key}
+                codigo={item.designation}
+                rotulo={item.label}
+                onClick={() => setSelecao({ tipo: "referencia", chave: item.key })}
+              />
+            ))}
+          </Grupo>
         </div>
-        <p className="border-t border-[var(--color-line)] px-5 py-3.5 text-[13px] leading-relaxed text-[var(--color-neutral-300)]">
-          {target.brief}
-        </p>
+
+        {dataset ? <Procedencia dataset={dataset} /> : null}
+
+        {referencia ? (
+          <p className="border-t border-[var(--color-line)] px-5 py-3.5 text-[13px] leading-relaxed text-[var(--color-neutral-300)]">
+            {referencia.brief}
+          </p>
+        ) : null}
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" onClick={executar}>
+            <Button variant="primary" onClick={executar} disabled={!curva || carregando}>
               <Search size={14} aria-hidden />
               {result ? "Analisar de novo" : "Analisar"}
             </Button>
+
+            {carregando ? (
+              <span className="text-xs text-[var(--color-neutral-500)]">
+                carregando a série…
+              </span>
+            ) : null}
+
+            {curva && !carregando ? (
+              <span className="tabular text-xs text-[var(--color-neutral-500)]">
+                {curva.time.length.toLocaleString("pt-BR")} pontos
+              </span>
+            ) : null}
 
             {desatualizado ? (
               <span className="text-xs text-[var(--color-signal-warn)]">
                 Os parâmetros mudaram desde esta análise.
               </span>
+            ) : null}
+
+            {erroCurva ? (
+              <span className="text-xs text-[var(--color-signal-danger)]">{erroCurva}</span>
             ) : null}
           </div>
 
@@ -198,23 +326,37 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
               <Panel>
                 <PanelHeader title="Leitura do resultado" />
                 <div className="flex flex-col gap-3.5 px-5 py-5 text-[15px] leading-relaxed">
-                  <p className="text-[var(--color-neutral-300)]">{target.lesson}</p>
+                  {referencia ? (
+                    <p className="text-[var(--color-neutral-300)]">{referencia.lesson}</p>
+                  ) : (
+                    <p className="text-[var(--color-neutral-300)]">
+                      Esta é uma observação real: ninguém injetou nada nela, e o
+                      valor de referência para comparar vem da literatura, não
+                      deste módulo. Confira período e profundidade contra o
+                      catálogo antes de concluir qualquer coisa.
+                    </p>
+                  )}
 
                   <p className="rule-top pt-3.5 text-[13px] text-[var(--color-neutral-500)]">
                     Um pico no periodograma e uma relação sinal/ruído alta indicam
-                    que existe um sinal periódico com forma de caixa — e nada
-                    além disso. Confirmar que a causa é um planeta exige
-                    descartar binária eclipsante, contaminação por estrela
-                    vizinha e artefato do instrumento, e depois observação
-                    independente. Este módulo mostra o primeiro passo, não a
-                    conclusão.
+                    que existe um sinal periódico com forma de caixa — e nada além
+                    disso. Confirmar que a causa é um planeta exige descartar
+                    binária eclipsante, contaminação por estrela vizinha e artefato
+                    do instrumento, e depois observação independente. Este módulo
+                    mostra o primeiro passo, não a conclusão.
                   </p>
                 </div>
               </Panel>
 
               <RunRecorder
                 moduleSlug={module.slug}
-                parameters={{ ...values, target: target.designation }}
+                // O dado analisado entra nos parâmetros da execução: sem isso a
+                // execução não consegue nomear a série sobre a qual rodou, e
+                // deixa de ser reproduzível (ADR 0014).
+                parameters={{
+                  ...values,
+                  dataset: dataset?.slug ?? referencia?.designation ?? "desconhecido",
+                }}
                 summary={leituras}
                 modelVersion={spec.modelVersion}
               />
@@ -222,7 +364,9 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
           ) : (
             <Panel className="px-6 py-12 text-center">
               <p className="text-sm text-[var(--color-neutral-500)]">
-                Escolha um alvo, ajuste o método e execute a análise.
+                {carregando
+                  ? "Carregando a série…"
+                  : "Escolha um alvo, ajuste o método e execute a análise."}
               </p>
             </Panel>
           )}
@@ -252,6 +396,120 @@ export default function TransitExplorerModule({ module, spec }: ModuleComponentP
           onReset={handleReset}
         />
       </div>
+    </div>
+  );
+}
+
+function Grupo({
+  titulo,
+  vazio,
+  children,
+}: {
+  titulo: string;
+  vazio?: string;
+  children: React.ReactNode;
+}) {
+  const temFilhos = Array.isArray(children) ? children.length > 0 : Boolean(children);
+
+  return (
+    <div>
+      <h6 className="text-[var(--color-neutral-500)]">{titulo}</h6>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {temFilhos ? (
+          children
+        ) : (
+          <span className="text-xs text-[var(--color-neutral-600)]">{vazio}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Alvo({
+  ativo,
+  codigo,
+  rotulo,
+  onClick,
+}: {
+  ativo: boolean;
+  codigo: string;
+  rotulo: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={
+        ativo
+          ? "rounded-[var(--radius-control)] border border-[var(--color-accent)] px-3 py-2 text-left text-xs text-[var(--color-accent-300)]"
+          : "rounded-[var(--radius-control)] border border-[var(--color-line)] px-3 py-2 text-left text-xs text-[var(--color-neutral-400)] hover:border-[var(--color-line-strong)] hover:text-[var(--color-ink)]"
+      }
+    >
+      <span className="tabular block text-[10px] text-[var(--color-neutral-600)]">
+        {codigo}
+      </span>
+      {rotulo}
+    </button>
+  );
+}
+
+/**
+ * De onde este dado veio.
+ *
+ * Renderizada junto do alvo, e não atrás de um link: a procedência é parte do
+ * dado, e um número sem ela não é citável nem verificável. Quando falta soma de
+ * verificação ou citação, isso aparece — dívida escondida não é paga.
+ */
+function Procedencia({ dataset }: { dataset: Dataset }) {
+  const campos: [string, string | null][] = [
+    ["Missão", dataset.provenance.missionFullName],
+    ["Instrumento", dataset.provenance.instrument],
+    ["Produto", dataset.provenance.product],
+    ["Arquivo", dataset.provenance.archive],
+    ["Setor", dataset.sector !== null ? String(dataset.sector) : null],
+    [
+      "Cadência",
+      dataset.cadenceSeconds ? `${dataset.cadenceSeconds} s` : null,
+    ],
+    [
+      "Obtido em",
+      dataset.provenance.retrievedAt
+        ? new Date(dataset.provenance.retrievedAt).toLocaleDateString("pt-BR")
+        : null,
+    ],
+    ["Pontos", dataset.points.toLocaleString("pt-BR")],
+  ];
+
+  return (
+    <div className="border-t border-[var(--color-line)] px-5 py-4">
+      <h6 className="text-[var(--color-neutral-500)]">Procedência</h6>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
+        {campos
+          .filter(([, valor]) => valor)
+          .map(([rotulo, valor]) => (
+            <div key={rotulo}>
+              <dt className="text-[10px] tracking-[0.08em] text-[var(--color-neutral-600)] uppercase">
+                {rotulo}
+              </dt>
+              <dd className="tabular text-[13px] text-[var(--color-neutral-300)]">{valor}</dd>
+            </div>
+          ))}
+      </dl>
+
+      {dataset.provenance.citation ? (
+        <p className="mt-3.5 text-[12px] leading-relaxed text-[var(--color-neutral-500)]">
+          {dataset.provenance.citation}
+        </p>
+      ) : (
+        <p className="mt-3.5 text-[12px] leading-relaxed text-[var(--color-signal-warn)]">
+          Sem {dataset.provenance.sha256 ? "citação" : "soma de verificação"}: esta
+          série ainda não é citável. Um resultado tirado dela não pode ser
+          referenciado até isso ser preenchido.
+        </p>
+      )}
     </div>
   );
 }

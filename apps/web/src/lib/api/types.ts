@@ -207,6 +207,54 @@ export interface CommentNode {
   replies?: CommentNode[];
 }
 
+/**
+ * De onde uma série veio, e quando.
+ *
+ * Não é metadado decorativo: é o elo "dataset → versão do dado" da cadeia de
+ * reprodutibilidade (ADR 0014). A interface renderiza isto junto do gráfico
+ * pela mesma razão que renderiza o crédito junto da imagem do Webb — dado sem
+ * procedência ao lado é uma dívida esperando vencer.
+ */
+export interface DatasetProvenance {
+  mission: string;
+  missionLabel: string;
+  missionFullName: string;
+  instrument: string;
+  pipeline: string | null;
+  product: string | null;
+  archive: string;
+  file: string | null;
+  sha256: string | null;
+  retrievedAt: string | null;
+  citation: string | null;
+}
+
+/** Uma série observacional, sem os pontos. */
+export interface Dataset {
+  id: number;
+  slug: string;
+  title: string;
+  summary: string | null;
+  target: string;
+  externalId: string | null;
+  sector: number | null;
+  cadenceSeconds: number | null;
+  points: number;
+  timeSpanDays: number | null;
+  provenance: DatasetProvenance;
+  /** Falso enquanto faltar soma de verificação ou citação. */
+  citable: boolean;
+  publishedAt: string | null;
+}
+
+/** Os pontos, em vetores paralelos — a forma que o cliente consome direto. */
+export interface DatasetSeries {
+  slug: string;
+  points: number;
+  time: number[];
+  flux: number[];
+}
+
 /** Envelope de coleção paginada devolvido pela API. */
 export interface Paginated<T> {
   data: T[];
