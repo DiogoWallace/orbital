@@ -153,6 +153,54 @@ usar é `ivoa.obscore`, a padronizada da IVOA: `dbo.caomobservation` existe, mas
 com outro conjunto de nomes de coluna. Não há coluna de setor — ele vem embutido
 no `obs_id`, no trecho `-sNNNN-`.
 
+## Linha de base — 02/09/2026
+
+Primeira medição sobre um conjunto rotulado: **262 curvas** (112 planetas
+confirmados, 150 falsos positivos), um setor por alvo, cadência de 2 min,
+máscara `default`. A análise inteira levou 94 s.
+
+**Recuperação de período: ~80% dentro de 1%** do valor publicado, nas duas
+classes (já contando harmônicas — metade, um e o dobro).
+
+**Separação entre planeta e falso positivo**, por acurácia balanceada com o
+melhor limiar único de cada feature. 50% é acaso:
+
+| feature | todos (262) | período <1% (208) | período <1% e S/R>15 (148) |
+|---|---|---|---|
+| profundidade | 66,5% | 70,5% | **75,7%** |
+| altura do pico | 65,7% | 68,6% | 72,3% |
+| relação sinal/ruído | 64,0% | 65,0% | 67,7% |
+| odd-even | 58,9% | 60,4% | 58,7% |
+| secundário | 54,9% | 58,4% | 57,3% |
+
+### O que isso diz
+
+**Nenhuma feature simples separa bem.** A melhor chega a 75,7% no subconjunto
+mais limpo — melhor que acaso, longe de resolver. Há espaço real para um modelo
+que combine as features; não é um problema já resolvido por um limiar.
+
+**Boa parte da dificuldade era medição, não sobreposição.** Filtrar para alvos
+cujo período foi recuperado sobe a melhor feature de 66,5% para 70,5%, e exigir
+S/R mínima leva a 75,7%. Nove pontos vieram só de parar de medir lixo: feature
+calculada sobre período errado não descreve nada.
+
+**A implicação para o modelo:** treinar sobre tudo é treinar sobre 20% de ruído
+rotulado como se fosse sinal. Ou se filtra por qualidade da detecção, ou a
+qualidade entra como entrada — mas ignorá-la desperdiça o que este número
+mostra.
+
+**`odd-even` não se sustentou.** Ele inverte de direção quando se controla por
+S/R, o que é assinatura de feature dominada por ruído. Como está implementado,
+não serve.
+
+### Ressalvas
+
+O conjunto ficou desequilibrado (112 × 150) porque o filtro de período esgotou o
+estoque de planetas confirmados. "Falso positivo" é heterogêneo — é tudo que foi
+rejeitado, não só binária eclipsante. E há **vazamento de rótulo**: a disposição
+da TOI é decidida em parte com a mesma fotometria, então S/R correlaciona com
+"foi confirmável", não só com "é planeta".
+
 ## O que precisa estar anotado no fim
 
 Para cada um dos cinco, saído do CSV e não da memória:
