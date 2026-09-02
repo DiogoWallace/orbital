@@ -53,8 +53,9 @@ the pending-verification banner — that is by design (ADR 0010), not a broken s
 
 ## 3. Commands
 
-The `Makefile` is only a shortcut. If `make` is missing (`sudo apt install make`), the
-direct commands are equivalent:
+The `Makefile` is only a shortcut, and **`make` is not installed in this WSL** —
+checked on 02/09/2026, and `sudo apt install make` if you want it. Until then the
+right-hand column is the one that runs:
 
 | Shortcut | Direct command |
 |---|---|
@@ -69,6 +70,7 @@ direct commands are equivalent:
 | `make migrate` | `docker compose exec api php artisan migrate` |
 | `make fresh` | `docker compose exec api php artisan migrate:fresh --seed` |
 | `make test` | `docker compose exec api php artisan test` |
+| `make hooks` | `git config core.hooksPath .githooks` **and** `git config commit.template .gitmessage` — already set here |
 
 Frontend, inside the `web` container:
 

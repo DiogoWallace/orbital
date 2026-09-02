@@ -79,7 +79,7 @@ gets built.
 | — · Reproducibility | ADR **0014** | decided 31/08 — the seven links a run must carry, and the honest limit: `sin`/`cos`/`log` are implementation-approximated in ECMAScript, so the synthetic generator is not bit-portable across engines while the analysis path is |
 | 4 · Astronomy: transit detection | `transit-explorer` | **built 31/08 on synthetic curves, still `Draft`** — BLS, detrend, fold, S/N in pure TS with 36 test cases; five teaching targets (`SIN-1`..`SIN-5`). Real TESS data is not ingested yet |
 | 4b · Dataset ingestion | `Domain/Datasets` | **built 31/08** — `Dataset` + `DatasetSeries`, `IngestLightCurve`, `datasets:import`, three public routes, 14 tests. Provenance fields are mandatory per ADR 0014; no real curve ingested yet |
-| — · Commit conventions | commit `22f84d2` | done 02/09 — `docs/CONVENCOES-DE-COMMIT.md`, plus `exp` for measured experiments; hooks now versioned in `.githooks/`, enabled by `make hooks` |
+| — · Commit conventions | commit `22f84d2` | done 02/09 — `docs/CONVENCOES-DE-COMMIT.md`, plus `exp` for measured experiments; hooks now versioned in `.githooks/` and live here via `core.hooksPath` |
 | — · Comparing, forking and sharing runs | `is_public` + UUID | **backend only** — no screen exists |
 | 5 · Chemistry / 3D molecules | roadmap | not started |
 
@@ -159,9 +159,9 @@ Integration) — without it `docker` does not exist inside WSL and nothing start
 
 ```bash
 cd ~/projects/orbital
-docker compose up -d                                    # or: make up
+docker compose up -d                                    # the whole stack
 docker compose exec api php artisan migrate --seed
-docker compose exec api php artisan test                # make test
+docker compose exec api php artisan test                # backend suite
 docker compose exec web npm run test                    # module physics (Vitest)
 docker compose exec web npm run typecheck               # next typegen && tsc --noEmit
 ```
@@ -415,9 +415,11 @@ August came from.
 git commit -F .git/MENSAGEM      # arquivo escrito de dentro do WSL, UTF-8, LF
 ```
 
-**Hooks are versioned now**, in `.githooks/`, and `make hooks` is the one line per
-clone that makes Git see them (it sets `core.hooksPath` and registers the
-`.gitmessage` template). The `commit-msg` hook strips AI attribution and refuses a
+**Hooks are versioned now**, in `.githooks/`, and two `git config` lines per clone
+are what make Git see them — `core.hooksPath=.githooks` and
+`commit.template=.gitmessage`. `make hooks` does both, but **`make` is not installed
+in this WSL** (`sudo apt install make`), so reach for the config lines. They are set
+on this machine already, since 02/09. The `commit-msg` hook strips AI attribution and refuses a
 title outside the pattern, naming the reason. A `.git/hooks/commit-msg` left from an
 older clone stops running the moment `core.hooksPath` changes.
 

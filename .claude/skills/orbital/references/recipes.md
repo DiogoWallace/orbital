@@ -252,9 +252,10 @@ repository's addition: a measured experiment whose finding is the delivery, nega
 results included. Scope is the domain, the module key or the tool (`editorial`,
 `rocket-anatomy`, `tess`, `brenda`, `design`, `db`, `deploy`, `skill`).
 
-One line per clone: `make hooks`, which points `core.hooksPath` at the versioned
-`.githooks/`. The `commit-msg` hook strips AI attribution and refuses a title out of
-pattern.
+Two config lines per clone — `git config core.hooksPath .githooks` and
+`git config commit.template .gitmessage` — which is what `make hooks` runs, except
+that `make` is not installed in this WSL. Already set on this machine. The
+`commit-msg` hook strips AI attribution and refuses a title out of pattern.
 
 Write the message to a file and commit with `git commit -F .git/MENSAGEM`; a `-m`
 passing through `wsl.exe` mangles the text and drops the accents.

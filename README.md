@@ -24,13 +24,16 @@ docker compose up -d
 docker compose exec api php artisan migrate --seed
 ```
 
-Uma vez por clone, instale os hooks versionados — eles removem atribuição de
-IA da mensagem e recusam título fora do padrão de
+Uma vez por clone, ligue os hooks versionados — eles removem atribuição de IA
+da mensagem e recusam título fora do padrão de
 [docs/CONVENCOES-DE-COMMIT.md](docs/CONVENCOES-DE-COMMIT.md):
 
 ```bash
-make hooks
+git config core.hooksPath .githooks
+git config commit.template .gitmessage
 ```
+
+(`make hooks` faz as duas linhas, quando o `make` está instalado.)
 
 | Serviço | URL |
 |---|---|
@@ -63,7 +66,7 @@ O `Makefile` é só um atalho. Se `make` não estiver instalado
 | `make migrate` | `docker compose exec api php artisan migrate` |
 | `make fresh` | `docker compose exec api php artisan migrate:fresh --seed` |
 | `make test` | `docker compose exec api php artisan test` |
-| `make hooks` | `git config core.hooksPath .githooks` (uma vez por clone) |
+| `make hooks` | `git config core.hooksPath .githooks` **e** `git config commit.template .gitmessage` |
 
 No frontend:
 

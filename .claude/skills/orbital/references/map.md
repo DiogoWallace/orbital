@@ -12,7 +12,7 @@ docker/         php · nginx · postgres · caddy
 deploy/         bootstrap · deploy · backup · install-cron · remote-setup
 docs/           ARCHITECTURE.md · MODULES.md · DEPLOY.md · adr/0001..0014
                 CONVENCOES-DE-COMMIT.md · CONTINUAR-EM-OUTRA-MAQUINA.md
-.githooks/      commit-msg — versioned, enabled by `make hooks`
+.githooks/      commit-msg — versioned; live via core.hooksPath since 02/09
 ```
 
 ---
@@ -211,7 +211,7 @@ in project `006b6c34-4faf-4e09-92e0-22df896cb0f2` (`Orbital - Redesign.dc.html`)
 | `docker/postgres/init.sql` | `pg_trgm`, `unaccent`, `citext` |
 | `docker/caddy/Caddyfile` | edge TLS, routing, `handle_errors` with a static page for when the Next upstream is down |
 | `deploy/*.sh` | `bootstrap` (one-time VPS hardening), `deploy`, `backup`, `install-cron`, `remote-setup` |
-| `.githooks/commit-msg` | strips AI attribution, refuses a title outside `docs/CONVENCOES-DE-COMMIT.md`; inert until `make hooks` sets `core.hooksPath` |
+| `.githooks/commit-msg` | strips AI attribution, refuses a title outside `docs/CONVENCOES-DE-COMMIT.md`; inert until `core.hooksPath` points at it, which it does on this machine since 02/09 |
 | `.gitmessage` | commit template — the format, the types and the scopes, in the editor |
 | `.github/pull_request_template.md` | what changes, why, how to verify, plus the three checks that already cost time |
 | `.github/workflows/ci.yml` | three jobs — API (Pest + Pint against real Postgres), web (typecheck, Vitest, lint), images (GHCR, main only, green only) |

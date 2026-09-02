@@ -37,14 +37,17 @@ resolve o IP do php-fpm uma vez só.
 ## 2. Os hooks
 
 Os hooks vivem em `.githooks/`, versionados, mas o Git só os enxerga depois de
-uma linha de configuração — e essa configuração é local ao clone:
+configuração — e configuração é local ao clone, então isto **não** vem no
+`git clone`:
 
 ```bash
-make hooks
+git config core.hooksPath .githooks
+git config commit.template .gitmessage
 ```
 
-Isso aponta o `core.hooksPath` para `.githooks/` e registra o `.gitmessage`
-como template de mensagem. O `commit-msg` remove qualquer atribuição de IA
+`make hooks` faz as duas de uma vez, quando o `make` existe — no Ubuntu do WSL
+ele não vem instalado. O `commit-msg` já está versionado com o bit de execução,
+então não é preciso `chmod`. O `commit-msg` remove qualquer atribuição de IA
 (o default do harness manda incluí-la, e sem o hook ela volta) e recusa título
 fora do padrão de [CONVENCOES-DE-COMMIT.md](CONVENCOES-DE-COMMIT.md).
 

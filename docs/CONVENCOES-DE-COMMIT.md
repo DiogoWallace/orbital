@@ -177,11 +177,14 @@ remove o trailer do commit automaticamente; **descrição de PR ele não alcanç
 Os hooks vivem versionados em `.githooks/`, e uma vez por clone:
 
 ```bash
-make hooks
+git config core.hooksPath .githooks
+git config commit.template .gitmessage
 ```
 
-Isso aponta o `core.hooksPath` para `.githooks/` e registra `.gitmessage` como
-template de mensagem. O `commit-msg` faz duas coisas: retira a atribuição de IA
+Isso aponta o `core.hooksPath` para `.githooks/` e registra o `.gitmessage` como
+template de mensagem. `make hooks` faz as duas linhas de uma vez — mas o `make`
+não vem instalado no Ubuntu do WSL (`sudo apt install make`), então as duas
+linhas acima são o caminho que sempre funciona. O `commit-msg` faz duas coisas: retira a atribuição de IA
 e recusa título fora do padrão, com o motivo.
 
 Antes de `make hooks` existir, o hook era reconstruído à mão em cada clone e
