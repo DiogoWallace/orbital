@@ -53,6 +53,7 @@ FEATURES = [
     "pico",
     "secundario_pct",
     "odd_even",
+    "forma",
     "duracao_h",
 ]
 

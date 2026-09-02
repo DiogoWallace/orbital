@@ -5,6 +5,7 @@ import {
   oddEvenDifference,
   secondaryDepth,
   signalToNoise,
+  transitShapeRatio,
 } from "./analysis";
 import { detrend, medianInPlace, movingMedian, windowPointsFor } from "./detrend";
 import { generateLightCurve, randomSource, transitShape } from "./synthetic";
@@ -379,6 +380,55 @@ describe("metricas de vetting", () => {
     expect(
       oddEvenDifference(alternada, { ...candidato, period: 1.3 }),
     ).toBeGreaterThan(0.3);
+  });
+});
+
+describe("forma do transito", () => {
+  const candidato = {
+    period: 1.3,
+    power: 1,
+    depth: 0.02,
+    durationDays: 2 / 24,
+    epoch: 0.4,
+  };
+
+  const curvaCom = (ingressFraction: number) =>
+    generateLightCurve({
+      ...CURTA,
+      baselineDays: 20,
+      cadenceMinutes: 2,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      ingressFraction,
+      noise: 0,
+      variabilityAmplitude: 0,
+    });
+
+  it("da razao alta para fundo chato", () => {
+    // ingresso curto = caixa: as larguras a 50% e 75% quase coincidem.
+    expect(transitShapeRatio(curvaCom(0.05), candidato)).toBeGreaterThan(0.85);
+  });
+
+  it("da razao baixa para perfil em V", () => {
+    // ingresso ocupando a duracao inteira = triangulo, sem fundo chato.
+    expect(transitShapeRatio(curvaCom(1), candidato)).toBeLessThan(0.7);
+  });
+
+  it("separa os dois casos com folga", () => {
+    const chato = transitShapeRatio(curvaCom(0.05), candidato);
+    const bico = transitShapeRatio(curvaCom(1), candidato);
+
+    expect(chato - bico).toBeGreaterThan(0.2);
+  });
+
+  it("devolve zero quando nao da para medir", () => {
+    const vazia = generateLightCurve({ ...CURTA, period: null, noise: 0, variabilityAmplitude: 0 });
+
+    // Curva plana: sem profundidade, os degraus nao existem. Zero aqui
+    // significa "nao medido", e nao "perfil em V".
+    expect(transitShapeRatio(vazia, candidato)).toBe(0);
   });
 });
 

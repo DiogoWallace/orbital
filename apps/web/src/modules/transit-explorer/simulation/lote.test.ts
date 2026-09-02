@@ -88,6 +88,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
       "pico",
       "secundario_pct",
       "odd_even",
+      "forma",
       "pontos",
     ];
 
@@ -137,6 +138,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
         ((c?.power ?? 0) * 1000).toFixed(4),
         (r.secondaryDepth * 100).toFixed(4),
         r.oddEven.toFixed(4),
+        r.shapeRatio.toFixed(4),
         String(curva.time.length),
       ];
 
@@ -149,6 +151,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
         (c?.power ?? 0) * 1000,
         r.secondaryDepth * 100,
         r.oddEven,
+        r.shapeRatio,
         Number.isFinite(erro) ? erro : Number.NaN,
       ]);
     }
@@ -163,7 +166,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
       return limpos[Math.floor(limpos.length / 2)];
     };
 
-    const nomes = ["profundidade %", "S/R", "pico e-3", "secundário %", "odd-even", "erro período"];
+    const nomes = ["profundidade %", "S/R", "pico e-3", "secundário %", "odd-even", "forma", "erro período"];
 
     console.log(`\n${saida.length - 1} alvos analisados -> resultados.csv\n`);
     console.log(`${"".padEnd(16)}${nomes.map((n) => n.padStart(15)).join("")}`);

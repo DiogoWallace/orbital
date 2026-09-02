@@ -202,6 +202,91 @@ export function oddEvenDifference(
   return Math.abs(profundidadePar - profundidadeImpar) / media;
 }
 
+/**
+ * Forma do trânsito: fundo chato ou bico.
+ *
+ * Um planeta cobre o disco inteiro por boa parte da passagem, então a queda tem
+ * fundo achatado — perfil em U. Uma binária de roçadura nunca encobre por
+ * completo: a companheira entra e sai, e o mínimo é um ponto — perfil em V. É
+ * um dos discriminadores que a triagem real usa, e o que o torna valioso aqui é
+ * ser **ortogonal à amplitude**: profundidade, pico e relação sinal/ruído já
+ * medem "quão forte é a queda" três vezes, e a forma não mede isso.
+ *
+ * A razão devolvida é a largura a 75% da profundidade dividida pela largura a
+ * 50%. Para uma caixa perfeita as duas coincidem e a razão vale 1; para um V
+ * ideal, a largura cai pela metade a cada degrau e a razão vale 0,5. Trânsito
+ * real fica no meio, porque o escurecimento de bordo arredonda o fundo.
+ *
+ * Devolve 0 quando não dá para medir — poucos pontos, ou fundo raso demais para
+ * os degraus se distinguirem do ruído. Zero aqui significa "não medido", e não
+ * "perfil em V".
+ */
+export function transitShapeRatio(
+  curve: LightCurve,
+  candidate: TransitCandidate,
+  bins = 24,
+): number {
+  const meiaFase = candidate.durationDays / candidate.period / 2;
+
+  if (!Number.isFinite(meiaFase) || meiaFase <= 0) return 0;
+
+  // Janela um pouco mais larga que o trânsito: precisa sobrar fora dele para a
+  // linha de base ser medida no mesmo trecho, e não na curva inteira.
+  const janela = meiaFase * 2;
+
+  const somas = new Float64Array(bins);
+  const contagens = new Float64Array(bins);
+
+  for (let i = 0; i < curve.time.length; i += 1) {
+    const ciclos = (curve.time[i] - candidate.epoch) / candidate.period + 0.5;
+    const fase = ciclos - Math.floor(ciclos) - 0.5;
+
+    if (Math.abs(fase) > janela) continue;
+
+    let bin = Math.floor(((fase + janela) / (2 * janela)) * bins);
+    if (bin < 0) bin = 0;
+    if (bin >= bins) bin = bins - 1;
+
+    somas[bin] += curve.flux[i];
+    contagens[bin] += 1;
+  }
+
+  const perfil: number[] = [];
+  for (let b = 0; b < bins; b += 1) {
+    perfil.push(contagens[b] > 0 ? somas[b] / contagens[b] : Number.NaN);
+  }
+
+  // Base: os bins das pontas, que estão fora do trânsito por construção.
+  const pontas = [
+    ...perfil.slice(0, Math.floor(bins / 6)),
+    ...perfil.slice(bins - Math.floor(bins / 6)),
+  ].filter(Number.isFinite);
+
+  if (pontas.length < 2) return 0;
+
+  const base = pontas.reduce((a, b) => a + b, 0) / pontas.length;
+
+  const validos = perfil.filter(Number.isFinite);
+  if (validos.length < bins / 2) return 0;
+
+  const fundo = Math.min(...validos);
+  const profundidade = base - fundo;
+
+  if (profundidade <= 0) return 0;
+
+  const largura = (fracao: number): number =>
+    perfil.filter((v) => Number.isFinite(v) && base - v >= fracao * profundidade).length;
+
+  const meia = largura(0.5);
+  const cheia = largura(0.75);
+
+  // Com um bin só a 50% não há degrau para comparar: a razão seria 1 por
+  // acidente, sugerindo fundo chato onde só há falta de resolução.
+  if (meia < 2) return 0;
+
+  return cheia / meia;
+}
+
 export interface AnalysisOptions {
   /** Janela da mediana móvel, em dias. */
   detrendWindowDays: number;
@@ -228,6 +313,8 @@ export interface AnalysisResult {
   secondaryDepth: number;
   /** Alternância entre eventos pares e ímpares, relativa à profundidade. */
   oddEven: number;
+  /** Forma do fundo: ~1 é chato (planeta), ~0,5 é bico (roçadura). */
+  shapeRatio: number;
 }
 
 export function analyse(
@@ -248,5 +335,6 @@ export function analyse(
     snr: candidate ? signalToNoise(achatada, candidate) : 0,
     secondaryDepth: candidate ? secondaryDepth(achatada, candidate) : 0,
     oddEven: candidate ? oddEvenDifference(achatada, candidate) : 0,
+    shapeRatio: candidate ? transitShapeRatio(achatada, candidate) : 0,
   };
 }

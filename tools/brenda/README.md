@@ -89,6 +89,38 @@ existe onde alguém já decidiu a resposta.
   subconjunto entre os dois lados é a forma mais fácil de declarar vitória sem
   ter vencido.
 
+## Segundo treino — 02/09/2026, com a forma do trânsito
+
+A conclusão do primeiro treino apontava "falta a feature que de fato separa", e
+a colinearidade dizia que mais uma medida de amplitude não serviria. Entrou
+então `forma`: a razão entre a largura a 75% e a 50% da profundidade — fundo
+chato (planeta, ~1) contra bico (roçadura, ~0,5). É ortogonal por construção,
+porque não mede quão fundo, mede o formato.
+
+Ela **funciona sozinha**:
+
+| feature isolada | todos (262) | período <1% e S/R>15 (148) |
+|---|---|---|
+| profundidade | 66,5% | 75,7% |
+| **forma** | **65,1%** | **72,3%** |
+
+E **não melhorou o modelo**: a regressão caiu de 67,3% para 65,5%, as árvores de
+61,7% para 60,2%.
+
+### Por que uma feature boa não ajuda
+
+Os quartis mostram: planeta q25 = 0,538, falso positivo q75 = 0,667. As
+distribuições se sobrepõem quase inteiras, e a diferença de medianas (0,700
+contra 0,556) esconde isso.
+
+Com 262 amostras e sete features, o modelo não tem como estimar a combinação —
+o desvio entre dobras chega a doze pontos, maior que qualquer ganho que se
+queira medir. **Duas tentativas independentes agora apontam a mesma restrição:
+o gargalo é o tamanho da amostra, não a escolha de features.**
+
+Parar de adicionar feature é a conclusão. A medição já disse duas vezes onde
+está o problema.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que
