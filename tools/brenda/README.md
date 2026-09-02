@@ -173,6 +173,73 @@ precisão de um setor de 0,35% para 0,102%, e o achatamento passou a respeitar
 buracos — que a curva de um setor só também tem, por causa da pausa de downlink
 no meio.
 
+## Achatamento com máscara — 02/09/2026: funcionou, e resgatou uma feature
+
+O diagnóstico do multi-setor apontava achatamento melhor. Duas mudanças foram
+testadas, e **só uma sobreviveu à medição.**
+
+### Biweight de Tukey: medido pior, removido
+
+A literatura de busca de trânsitos aponta o biweight como melhor estimador de
+tendência que a mediana. Aqui não foi:
+
+| estimador | erro no período | pico |
+|---|---|---|
+| mediana | **0,102%** | 0,0338 × 10⁻³ |
+| biweight | 10,594% | 0,0078 × 10⁻³ |
+
+Quatro vezes menos pico. Removido — e o registro fica para ninguém tentar de
+novo sem medir.
+
+### Mascarar o trânsito ao ajustar a base: funcionou
+
+O achatamento incluía os pontos do próprio trânsito no cálculo da linha de base,
+então a tendência descia junto e **comia parte da profundidade**. A análise
+passou a ter dois passes: o primeiro acha um candidato, o segundo refaz a base
+ignorando onde esse candidato está.
+
+Em π Mensae c, um setor:
+
+| | pico | profundidade medida |
+|---|---|---|
+| passe único | 0,0338 × 10⁻³ | 0,0240% |
+| com máscara | **0,0399 × 10⁻³** | **0,0283%** |
+| publicado | — | 0,0321% |
+
+O achatamento estava apagando cerca de um quarto da profundidade. A máscara
+recupera a maior parte, e a medida fica mais perto do valor publicado.
+
+### O efeito colateral que importa mais
+
+`odd-even` tinha sido declarado imprestável no treino anterior — separava 58,9%
+e **invertia de direção** sob controle de S/R, assinatura de ruído. Com o dado
+preparado direito:
+
+| | antes | agora |
+|---|---|---|
+| separação (todos) | 58,9% | **66,0%** |
+| separação (limpo) | 58,7% | **70,0%** |
+| direção sob controle de S/R | invertia | consistente |
+
+**A feature não era ruim; a preparação do dado é que a estragava.** Conclusão
+que vale além dela: antes de descartar uma medida, vale checar o que vem antes
+dela no caminho.
+
+### Terceiro treino
+
+| conjunto | melhor feature isolada | regressão | árvores |
+|---|---|---|---|
+| todos (262) | **forma, 68,1%** | 62,5% | 65,3% |
+| S/R > 15 (184) | **forma, 73,6%** | 73,3% | 69,9% |
+
+`forma` passou a ser a feature mais forte, à frente de profundidade — e é a
+fisicamente motivada, a que mede formato e não amplitude. Os pesos da regressão
+também ficaram sãos: antes profundidade valia +0,97 contra pico em −0,45, sinal
+de colinearidade; agora o maior é forma com +0,385, sem o cabo de guerra.
+
+O modelo continua sem bater a melhor feature isolada. Terceira medição, mesma
+resposta: **o gargalo é o tamanho da amostra.**
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que

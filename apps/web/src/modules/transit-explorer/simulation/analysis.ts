@@ -13,7 +13,7 @@
  */
 
 import { boxLeastSquares, type BlsOptions, type BlsResult, type TransitCandidate } from "./bls";
-import { detrend, windowPointsFor } from "./detrend";
+import { detrendMasked, windowPointsFor } from "./detrend";
 import type { LightCurve } from "./synthetic";
 
 export interface FoldedCurve {
@@ -288,13 +288,16 @@ export function transitShapeRatio(
 }
 
 export interface AnalysisOptions {
-  /** Janela da mediana móvel, em dias. */
+  /** Janela do filtro robusto, em dias. */
   detrendWindowDays: number;
+  /** Refaz a base mascarando o candidato do primeiro passe. */
+  maskedPass: boolean;
   bls: Partial<BlsOptions>;
 }
 
 export const DEFAULT_ANALYSIS: AnalysisOptions = {
   detrendWindowDays: 0.5,
+  maskedPass: true,
   bls: {},
 };
 
@@ -317,14 +320,67 @@ export interface AnalysisResult {
   shapeRatio: number;
 }
 
+/**
+ * Marca os pontos que caem dentro de um trânsito do candidato.
+ *
+ * A janela é um pouco mais larga que a duração ajustada, porque a caixa do BLS
+ * costuma sair mais estreita que o trânsito real — mascarar exatamente a caixa
+ * deixaria a entrada e a saída de fora, e são justamente elas que puxam a
+ * tendência para baixo.
+ */
+function maskInTransit(
+  curve: LightCurve,
+  candidate: TransitCandidate,
+  folga = 1.3,
+): Uint8Array {
+  const mascara = new Uint8Array(curve.time.length);
+  const meia = (candidate.durationDays * folga) / 2;
+
+  for (let i = 0; i < curve.time.length; i += 1) {
+    const ciclos = (curve.time[i] - candidate.epoch) / candidate.period + 0.5;
+    const fase = (ciclos - Math.floor(ciclos) - 0.5) * candidate.period;
+
+    if (Math.abs(fase) <= meia) mascara[i] = 1;
+  }
+
+  return mascara;
+}
+
 export function analyse(
   curve: LightCurve,
   options: Partial<AnalysisOptions> = {},
 ): AnalysisResult {
   const opcoes = { ...DEFAULT_ANALYSIS, ...options };
+  const janela = windowPointsFor(curve, opcoes.detrendWindowDays);
 
-  const achatada = detrend(curve, windowPointsFor(curve, opcoes.detrendWindowDays));
-  const periodogram = boxLeastSquares(achatada, opcoes.bls);
+  // --- Primeiro passe: achatar sem saber onde está o trânsito -------------
+  let achatada = detrendMasked(curve, janela);
+  let periodogram = boxLeastSquares(achatada, opcoes.bls);
+
+  // --- Segundo passe: refazer a base ignorando o candidato ----------------
+  //
+  // O primeiro achatamento inclui os pontos do trânsito no cálculo da própria
+  // linha de base, então a tendência desce junto e come parte da profundidade.
+  // Sabendo onde o trânsito está, a base pode ser estimada só com o que sobra —
+  // e é aí que um sinal raso deixa de ser parcialmente apagado pelo próprio
+  // preparo do dado.
+  if (opcoes.maskedPass && periodogram.best !== null) {
+    const mascarada = detrendMasked(
+      curve,
+      janela,
+      maskInTransit(curve, periodogram.best),
+    );
+    const segundo = boxLeastSquares(mascarada, opcoes.bls);
+
+    // Só troca se o segundo passe encontrar algo. Um passe que piora tudo — e
+    // acontece, quando o primeiro candidato era espúrio e a máscara escondeu
+    // dado bom — não deve substituir um resultado que existia.
+    if (segundo.best !== null && segundo.best.power >= periodogram.best.power) {
+      achatada = mascarada;
+      periodogram = segundo;
+    }
+  }
+
   const candidate = periodogram.best;
 
   return {

@@ -9,6 +9,7 @@ import {
 } from "./analysis";
 import {
   detrend,
+  detrendMasked,
   medianInPlace,
   movingMedian,
   segmentStarts,
@@ -197,6 +198,78 @@ describe("achatamento", () => {
     expect(windowPointsFor(curva, 0.5)).toBe(72);
   });
 });
+
+describe("achatamento com mascara", () => {
+  it("nao deixa a mascara mudar a base fora do transito", () => {
+    const curva = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0.0003,
+      variabilityAmplitude: 0.01,
+      variabilityPeriod: 4,
+    });
+
+    const semMascara = detrendMasked(curva, windowPointsFor(curva, 0.5));
+    const vazia = new Uint8Array(curva.time.length);
+    const comMascaraVazia = detrendMasked(curva, windowPointsFor(curva, 0.5), vazia);
+
+    // Mascara sem nenhum ponto marcado tem de dar exatamente o mesmo resultado.
+    expect(Array.from(comMascaraVazia.flux)).toEqual(Array.from(semMascara.flux));
+  });
+
+  it("recupera mais profundidade quando o transito e mascarado", () => {
+    // Janela curta de proposito: e o regime em que a tendencia acompanha o
+    // transito e come parte dele.
+    const curva = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 3,
+      epoch: 0.4,
+      noise: 0.0002,
+      variabilityAmplitude: 0,
+    });
+
+    const janela = windowPointsFor(curva, 0.25);
+
+    const semMascara = detrendMasked(curva, janela);
+    const candidato = {
+      period: 1.3,
+      power: 1,
+      depth: 0.02,
+      durationDays: 3 / 24,
+      epoch: 0.4,
+    };
+    const comMascara = detrendMasked(curva, janela, maskInTransitParaTeste(curva, candidato));
+
+    const fundo = (c: { flux: Float64Array }) => Math.min(...c.flux);
+
+    // Com o transito fora do calculo da base, o fundo fica mais fundo — ou
+    // seja, menos profundidade foi apagada pelo proprio achatamento.
+    expect(1 - fundo(comMascara)).toBeGreaterThan(1 - fundo(semMascara));
+  });
+});
+
+/** Espelha a mascara interna da analise, para o teste acima. */
+function maskInTransitParaTeste(
+  curve: { time: Float64Array },
+  candidate: { period: number; durationDays: number; epoch: number },
+): Uint8Array {
+  const mascara = new Uint8Array(curve.time.length);
+  const meia = (candidate.durationDays * 1.3) / 2;
+
+  for (let i = 0; i < curve.time.length; i += 1) {
+    const ciclos = (curve.time[i] - candidate.epoch) / candidate.period + 0.5;
+    const fase = (ciclos - Math.floor(ciclos) - 0.5) * candidate.period;
+
+    if (Math.abs(fase) <= meia) mascara[i] = 1;
+  }
+
+  return mascara;
+}
 
 describe("emenda de setores", () => {
   /** Dois trechos separados por semanas, com niveis de base diferentes. */

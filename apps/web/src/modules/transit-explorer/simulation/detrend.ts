@@ -161,6 +161,92 @@ export function detrend(
   return { time: curve.time, flux };
 }
 
+/**
+ * Tendência por mediana móvel, ignorando os pontos marcados.
+ *
+ * A máscara é o que separa este achatamento do anterior. Sem ela, a janela que
+ * passa sobre um trânsito inclui os pontos do trânsito no cálculo da linha de
+ * base, e a tendência **desce junto** — o achatamento come parte da
+ * profundidade que se quer medir. Com o trânsito mascarado, a base é estimada
+ * só com o que está fora dele.
+ *
+ * Isso exige saber onde está o trânsito, que é justamente o que se procura.
+ * Daí a análise ter dois passes: o primeiro acha um candidato sem máscara, o
+ * segundo refaz a base ignorando o que o primeiro achou.
+ */
+export function maskedTrend(
+  flux: Float64Array,
+  windowPoints: number,
+  mask?: Uint8Array,
+): Float64Array {
+  const total = flux.length;
+  const janela = Math.max(3, Math.min(windowPoints | 0, total));
+  const metade = janela >> 1;
+
+  const tendencia = new Float64Array(total);
+  const buffer = new Float64Array(janela);
+
+  for (let i = 0; i < total; i += 1) {
+    const inicio = Math.max(0, i - metade);
+    const fim = Math.min(total - 1, i + metade);
+
+    let usados = 0;
+
+    for (let k = inicio; k <= fim; k += 1) {
+      if (mask && mask[k]) continue;
+
+      buffer[usados] = flux[k];
+      usados += 1;
+    }
+
+    // Janela quase toda mascarada não sustenta uma estimativa. Cair para a
+    // janela inteira é melhor que inventar uma base com três pontos — e o
+    // trecho afetado é curto, porque trânsito ocupa pouco do período.
+    if (usados < 3) {
+      usados = 0;
+      for (let k = inicio; k <= fim; k += 1) {
+        buffer[usados] = flux[k];
+        usados += 1;
+      }
+    }
+
+    tendencia[i] = medianInPlace(buffer, usados);
+  }
+
+  return tendencia;
+}
+
+/**
+ * Achatamento por trecho contínuo, com máscara opcional.
+ *
+ * É o `detrend` que a análise usa a partir do segundo passe. O primeiro passe
+ * continua sem máscara, porque ainda não há candidato para mascarar.
+ */
+export function detrendMasked(
+  curve: LightCurve,
+  windowPoints: number,
+  mask?: Uint8Array,
+  maxGapDays = 0.5,
+): LightCurve {
+  const flux = new Float64Array(curve.flux.length);
+  const inicios = segmentStarts(curve.time, maxGapDays);
+
+  for (let s = 0; s < inicios.length; s += 1) {
+    const inicio = inicios[s];
+    const fim = s + 1 < inicios.length ? inicios[s + 1] : curve.flux.length;
+
+    const trecho = curve.flux.slice(inicio, fim);
+    const recorte = mask ? mask.slice(inicio, fim) : undefined;
+    const tendencia = maskedTrend(trecho, windowPoints, recorte);
+
+    for (let i = 0; i < trecho.length; i += 1) {
+      flux[inicio + i] = tendencia[i] > 0 ? trecho[i] / tendencia[i] : 1;
+    }
+  }
+
+  return { time: curve.time, flux };
+}
+
 /** Janela em pontos correspondente a uma janela em dias, dada a cadência. */
 export function windowPointsFor(curve: LightCurve, windowDays: number): number {
   if (curve.time.length < 2) return 3;
