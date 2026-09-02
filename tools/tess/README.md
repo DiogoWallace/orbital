@@ -19,10 +19,16 @@ cd tools/tess
 ```
 
 ```
-consultar-alvos.sh  →  escolher TIC  →  resolver-setores.py  →  escolher setor
-                                                                      ↓
+consultar-alvos.sh   ┐
+                     ├→  escolher TIC  →  resolver-setores.py  →  escolher setor
+alvos-sem-toi.py     ┘                                                  ↓
                                                     baixar-curva.py --setor N  →  JSON
+                                                                        ↓
+                                              php artisan datasets:import <json>
 ```
+
+`consultar-alvos.sh` dá os três casos de trânsito; `alvos-sem-toi.py` dá os dois
+que a TOI não conhece.
 
 Os dois primeiros passos não precisam de instalação nenhuma — `curl` e a
 biblioteca padrão do Python bastam. Só o último exige `lightkurve`.
@@ -71,6 +77,35 @@ Também aceita vários TIC de uma vez:
 ```bash
 python3 resolver-setores.py 256364928 261136679 285524410
 ```
+
+## 2b. Os dois casos que a TOI não sabe dar
+
+A TOI lista objetos de interesse para trânsito. A **estrela variável** e a
+**curva sem nada** não estão lá — e são justamente os dois casos que ensinam a
+duvidar. Também sem instalar nada:
+
+```bash
+python3 alvos-sem-toi.py variavel
+python3 alvos-sem-toi.py quieta --brilho 8 10 --min-setores 3
+python3 alvos-sem-toi.py --tipo "RR*" --brilho 9 12
+```
+
+Cruza três serviços: o SIMBAD diz o tipo do objeto, o MAST diz se há curva de
+2 minutos, e o NASA Exoplanet Archive confirma que o alvo **não** aparece na
+TOI.
+
+Duas lições estão embutidas nos padrões, e ambas custaram uma busca inútil:
+
+- **Brilho demais não presta.** A primeira tentativa devolveu Vega, Altair,
+  Spica e Polaris — V entre 0,03 e 3,1. O TESS satura nessas. A faixa padrão
+  começa em V 7,5.
+- **delta Scuti pulsa rápido demais**, entre 0,02 e 0,3 dia — *abaixo* do piso
+  de busca do módulo (0,5 d). O BLS acharia um alias, não a pulsação. O preset
+  `variavel` procura **gamma Doradus**, que pulsa entre 0,3 e 3 dias, dentro da
+  faixa varrida.
+
+E o que ele **não** prova: que a estrela quieta está mesmo quieta. Ausência de
+TOI e tipo genérico no SIMBAD são indícios; só olhando a curva se confirma.
 
 ## 3. Baixar e converter
 
