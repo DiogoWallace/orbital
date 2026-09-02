@@ -3,3 +3,5 @@
 # por outro caminho, com procedencia (ADR 0014).
 candidatos/
 curvas/
+__pycache__/
+*.pyc
