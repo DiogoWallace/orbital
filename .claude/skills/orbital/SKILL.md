@@ -177,11 +177,22 @@ docker compose exec web npm run typecheck               # next typegen && tsc --
 Dev account from the seed: `admin@orbital.local` / `password`, born **unverified** on
 purpose — the pending-confirmation banner is part of what you are looking at.
 
-`apps/api/README.md` and `apps/web/README.md` are **stock framework boilerplate** —
-the Laravel one tells you to install Laravel Boost, which is not installed and never
-was; the Next block in `apps/web/CLAUDE.md` is rewritten by `next dev` on every run.
-Treat both as noise, never as project instructions. The real docs are `README.md` at
-the root and `docs/`.
+`apps/api/README.md` and `apps/web/README.md` **were** stock framework boilerplate
+until 02/09 and are not any more: each now says what its half of the monorepo is, that
+nothing runs on the host, and where each kind of change goes. The Laravel one used to
+tell you to install Laravel Boost — never installed here, never to be — which is
+exactly the shape of instruction that reads as project policy while coming from
+somewhere else entirely.
+
+What *is* generated: **`apps/web/AGENTS.md`** carries a block that `next dev` writes and
+re-adds on every run (`node_modules/next/dist/server/lib/generate-agent-files.js`),
+warning that Next 16 breaks with APIs older models were trained on and pointing at
+`node_modules/next/dist/docs/`. **`apps/web/CLAUDE.md` is one line importing it**
+(`@AGENTS.md`) — the block does not live there. Both files are versioned. That block is
+not noise: it is Next's own guidance and worth reading. It is not project policy
+either, and removing it from a diff only makes it return as an uncommitted change —
+commit it alongside your work. The project's own instructions are `README.md` at the
+root and `docs/`.
 
 Everything else about the environment — ports, WSL/Windows interop, what to do when
 something will not start — is in `references/environment.md`.

@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# apps/web — o frontend do Orbital
 
-## Getting Started
+Next.js 16 (App Router) · React 19 · Tailwind 4. É aqui que moram os módulos
+científicos, o design system Nocturne e o **BFF**: o navegador só fala com estas
+rotas, nunca com o Laravel (ADR 0004).
 
-First, run the development server:
+Este diretório é metade de um monorepo. A documentação do projeto está na raiz:
+[README.md](../../README.md), [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md),
+[docs/MODULES.md](../../docs/MODULES.md) e as [ADRs](../../docs/adr/).
+
+## Não se roda `npm run dev` daqui
+
+Node não está instalado no host, e o container `web` já executa o servidor de
+desenvolvimento. Os comandos saem **da raiz do repositório**:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d
+docker compose exec web npm run test        # física dos módulos (Vitest)
+docker compose exec web npm run typecheck   # next typegen && tsc --noEmit
+docker compose exec web npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend em http://localhost:3100 — **3100, não 3000**: as portas foram
+escolhidas para não colidir com os outros projetos da máquina.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`npm run typecheck` roda `next typegen` antes de propósito: `next-env.d.ts` e
+`.next/types` são gerados e não versionados, e sem eles o TypeScript não conhece
+nem os imports de imagem nem os tipos das rotas.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Onde mexer
 
-## Learn More
+| Mudança | Onde |
+|---|---|
+| Módulo científico | `src/modules/<chave>/` — e leia `docs/MODULES.md` antes |
+| Cor, tipografia, classe de componente | `src/styles/tokens.css` e `nocturne.css` |
+| Primitiva científica reaproveitável | `src/components/lab/` — só na terceira repetição |
+| Rota do BFF, sessão, cookie | `src/app/api/` |
+| Tela | `src/app/(marketing)/`, `(auth)/`, `(platform)/` |
 
-To learn more about Next.js, take a look at the following resources:
+Duas regras que o código não impede e que quebram em silêncio: `simulation/` é
+TypeScript puro, sem um único import de React — é o que torna a física testável
+sem renderizar e determinística entre máquinas; e `registry.ts` é uma lista
+manual de propósito, porque são os `import()` estáticos que fazem o bundler
+separar cada módulo em seu próprio chunk. Trocar por varredura de diretório faz
+todo visitante baixar todos os módulos.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## `AGENTS.md` e `CLAUDE.md` são gerados
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`apps/web/AGENTS.md` carrega um bloco escrito e **re-adicionado pelo `next dev`
+a cada execução** (`node_modules/next/dist/server/lib/generate-agent-files.js`),
+avisando que o Next 16 tem mudanças que quebram em relação a versões anteriores.
+`apps/web/CLAUDE.md` só o importa, com uma linha: `@AGENTS.md`.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Os dois são versionados. Tirar o bloco de um diff só faz ele voltar como
+alteração não commitada — commitar junto com o trabalho mantém a árvore limpa.
+O conteúdo é do Next, não deste projeto: as instruções do projeto estão na raiz
+e em `docs/`.

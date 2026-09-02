@@ -1,58 +1,62 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# apps/api — a API do Orbital
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 13 · PHP 8.4 · PostgreSQL 16 · Sanctum. Serve `/api/v1`, e **o navegador
+nunca fala com ela direto**: quem conversa é o BFF do Next, em `apps/web`
+(ADR 0004).
 
-## About Laravel
+Este diretório é metade de um monorepo. A documentação do projeto está na raiz:
+[README.md](../../README.md), [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
+e as [ADRs](../../docs/adr/).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Nada roda no host
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Não há PHP nem Composer instalados nesta máquina. Todo comando passa pelo
+Docker, disparado **da raiz do repositório**:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+docker compose up -d
+docker compose exec api php artisan migrate --seed
+docker compose exec api php artisan test          # Pest
+docker compose exec api vendor/bin/pint           # a CI roda pint --test
+docker compose exec api php artisan tinker
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+API em http://localhost:8100/api/v1. Se a suíte falhar em massa com
+`UnexpectedValueException` do Monolog, a imagem foi construída antes do
+`USER ${UID}` e não escreve em `storage/`: `docker compose build api queue`.
+Depois de `docker compose restart api`, reinicie o `nginx` junto — ele resolve o
+IP do php-fpm uma vez só, na subida.
 
-## Contributing
+## Como o código está organizado
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+`app/Domain/<Contexto>/` é o núcleo, quase sem framework — hoje `Catalog`,
+`Community`, `Datasets`, `Editorial`, `Identity`, `Projects` e `Simulation`,
+cada um com o que precisa de `Models/ Data/ Actions/ Queries/ Enums/ Policies/
+Notifications/ Support/` (ADR 0008).
 
-## Code of Conduct
+Quatro regras não são convenção, são teste de arquitetura em
+`tests/Architecture/LayeringTest.php`, e derrubam a CI quando quebradas:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- `App\Domain` nunca importa `App\Http`;
+- controller não guarda regra de negócio, e Eloquent não chega na resposta —
+  quem cruza as camadas é DTO tipado;
+- Action expõe um único `execute()`;
+- nenhum `dd`, `dump` ou `ray` sobrevive.
 
-## Security Vulnerabilities
+Duas armadilhas que já custaram semanas e valem para toda rota nova: rota
+pública entra no grupo `auth.optional`, senão o token do cabeçalho é ignorado e
+um curador logado não vê o próprio rascunho (ADR 0012); rota de escrita entra
+no grupo `verified` (ADR 0010). E teste de visibilidade usa `withToken()`,
+nunca `actingAs()` — foi `actingAs()` que escondeu o primeiro caso por três
+semanas com o teste passando.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Os testes rodam contra PostgreSQL de verdade, nunca SQLite: o schema depende de
+`jsonb` e de índice GIN (ADR 0003).
 
-## License
+## Isto não é o README do Laravel
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+O texto do esqueleto foi removido de propósito. Ele falava do framework e não
+deste projeto, e mandava instalar o [Laravel
+Boost](https://laravel.com/docs/ai) com `composer require laravel/boost --dev`
+— que nunca esteve instalado aqui e não é para ser. Quem chegasse por este
+arquivo seguia instrução de outro lugar achando que era daqui.
