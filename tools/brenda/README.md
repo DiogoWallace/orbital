@@ -240,6 +240,57 @@ de colinearidade; agora o maior é forma com +0,385, sem o cabo de guerra.
 O modelo continua sem bater a melhor feature isolada. Terceira medição, mesma
 resposta: **o gargalo é o tamanho da amostra.**
 
+## Quarto treino — 02/09/2026: o primeiro ganho real
+
+600 alvos, 300 por classe. E uma correção de método que muda a leitura de tudo
+que veio antes.
+
+### A comparação estava torta a meu favor — do lado errado
+
+A "linha de base" escolhia o melhor limiar **nos mesmos dados em que era
+medida**, e esse número era comparado com modelos validados de forma cruzada.
+A referência via a resposta e os modelos não.
+
+O sintoma apareceu ao dobrar o corpus: a linha de base **caiu** de 74,9% para
+71,2%. Não foi o dado piorando — foi o otimismo encolhendo, como encolhe quando
+a amostra cresce. O limiar agora é escolhido só na parte de treino de cada
+dobra, igual aos outros.
+
+Ou seja: os três treinos anteriores compararam um modelo honesto contra uma
+referência que espiava. A conclusão "o modelo não bate a linha de base" era, em
+parte, artefato disso.
+
+### O resultado
+
+| conjunto | limiar validado | regressão | **Brenda (árvores)** |
+|---|---|---|---|
+| todos (600) | 68,8% (±4,4) | 68,5% (±8,2) | **71,2% (±4,2)** |
+| S/R > 15 (451) | 72,9% (±4,2) | 72,3% (±4,3) | **76,3% (±4,7)** |
+
+O ganho médio é +2,3 e +3,4 pontos — menor que o desvio entre dobras, o que
+sozinho não convenceria. Como as dobras são as mesmas para todos os modelos, a
+comparação pareada diz mais:
+
+```
+todos (600)     +1,7  +2,5  +3,3  +3,3  +0,8    5/5 dobras
+S/R > 15 (451)  +7,7  +3,0  -4,8  +4,9  +6,3    4/5 dobras
+```
+
+**Cinco de cinco no conjunto completo.** Ganho pequeno e consistente vale mais
+que ganho grande e instável — e o recorte filtrado, com média maior, perde uma
+dobra por quase cinco pontos.
+
+Brenda também bate a versão otimista da linha de base (69,3% e 73,8%), então a
+vitória não vem só de ter consertado a comparação.
+
+### O que mudou junto, e por isso não dá para atribuir a uma causa só
+
+Três coisas mudaram entre o terceiro treino e este: o corpus dobrou, as classes
+ficaram equilibradas (era 112 × 150), e a comparação virou justa. O ganho é
+real, mas atribuí-lo a "mais dado" seria chute — as três agem na mesma direção.
+
+`forma` segue como a feature de maior peso (+0,489), à frente de profundidade.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que
