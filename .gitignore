@@ -7,3 +7,8 @@ node_modules/
 .idea/
 .vscode/
 *.log
+
+# Bytecode do Python: muda com a versao do interpretador e nao e fonte de nada.
+# Ja entrou no historico duas vezes por falta desta linha.
+__pycache__/
+*.pyc
