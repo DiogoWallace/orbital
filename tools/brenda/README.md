@@ -340,6 +340,71 @@ A tabela TOI, com os filtros atuais (período < 9 d, tmag < 12), tem 665 planeta
 e 719 falsos positivos. Um corpus equilibrado de ~1.300 é o limite sem afrouxar
 brilho ou período — e afrouxar brilho troca quantidade por medida pior.
 
+## 1.170 alvos — 02/09/2026: a curva achatou, e a previsão falhou
+
+O corpus quase dobrou de novo: 600 planetas e 570 falsos positivos. Desta vez
+foi a classe de falsos positivos que esgotou o estoque da TOI, invertendo o
+gargalo do lote anterior — confirmação de que a escassez de antes era o
+pré-filtro quebrado, não falta de alvo.
+
+### O resultado
+
+| conjunto | limiar validado | regressão | Brenda |
+|---|---|---|---|
+| todos (1170) | 69,5% (±2,4) | 68,6% (±3,3) | **72,2% (±1,1)** |
+| S/R > 15 (856) | 72,1% (±3,7) | 71,8% (±3,4) | **74,1% (±3,7)** |
+
+Ganho de +2,6 e +2,0 pontos, 4 de 5 dobras nos dois recortes. A vitória se
+mantém, e o desvio caiu para ±1,1 — o número é mais confiável que qualquer
+anterior.
+
+### A previsão registrada antes da medição estava errada
+
+Antes de disparar o download ficou escrito: *"espero Brenda entre 74% e 76% em
+1.200, com o ganho sobre a base entre +5 e +7"*. Saiu **71,5%** de curva e
+**+2,8** de ganho. Errado nas duas pontas, e para menos.
+
+O erro veio de extrapolar a inclinação do trecho 500→600 como se ela fosse
+continuar. Era o trecho mais íngreme da curva, e trecho íngreme não é tendência.
+
+### A curva estendida
+
+| n | limiar validado | Brenda | ganho |
+|---|---|---|---|
+| 100 | 65,5% ±7,2 | 66,8% ±3,8 | +1,2 |
+| 200 | 65,6% ±2,9 | 65,4% ±2,9 | −0,3 |
+| 300 | 68,5% ±2,8 | 68,0% ±2,0 | −0,5 |
+| 400 | 66,7% ±1,1 | 69,2% ±1,2 | +2,5 |
+| 600 | 67,6% ±1,4 | 69,5% ±1,4 | +1,9 |
+| 800 | 68,3% ±1,0 | 71,6% ±1,0 | +3,3 |
+| 1000 | 68,7% ±0,4 | 70,8% ±0,8 | +2,2 |
+| **1170** | 68,7% ±0,3 | **71,5% ±0,3** | +2,8 |
+
+**Último passo, de 1000 para 1170: +0,7 ponto.** De 600 para 1170, quase
+dobrando: +2,0. A curva ainda sobe, mas o retorno por alvo baixado caiu para
+perto de zero.
+
+Os pontos desta tabela **não são comparáveis um a um com os da curva anterior**:
+lá as subamostras saíam de um corpus de 600, aqui saem de 1.170, então o n=600
+daqui é um sorteio diferente daquele corpus específico. Só a forma dentro de uma
+mesma execução é comparável.
+
+### O que mudou de verdade
+
+O gargalo saiu do tamanho da amostra. Três medições diziam "mais dado"; esta diz
+que mais dado, **desta fonte e com estas features**, acabou de esgotar o que
+tinha para dar — e o poço da TOI também está no fim para estes filtros.
+
+O que resta, em ordem de custo:
+
+1. **Feature nova de verdade.** Deslocamento de centroide é o discriminador que
+   falta, e exige baixar target pixel files — outra ordem de dado e de trabalho.
+2. **Rever o rótulo.** "Falso positivo" da TOI é heterogêneo, e o vazamento
+   descrito no primeiro treino continua de pé: a disposição é decidida em parte
+   com a mesma fotometria.
+3. **Mais dado afrouxando o brilho.** O mais barato e o menos promissor: troca
+   quantidade por medida pior, e a curva mostra que quantidade rende pouco agora.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que

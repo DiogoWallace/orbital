@@ -37,7 +37,7 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 from treinar import FEATURES, LimiarUnico, carregar
 
-TAMANHOS = [100, 150, 200, 300, 400, 500, 600]
+TAMANHOS = [100, 200, 300, 400, 600, 800, 1000, 1170]
 
 
 def subamostra(
@@ -79,8 +79,12 @@ def main() -> None:
     linhas: list[tuple[int, float, float]] = []
 
     for n in TAMANHOS:
+        # O ultimo tamanho acompanha o corpus: se ele crescer, a curva chega ate
+        # onde o dado chega, sem editar a lista.
         if n > len(y):
-            continue
+            if n == TAMANHOS[-1] or TAMANHOS[TAMANHOS.index(n) - 1] >= len(y):
+                continue
+            n = len(y)
 
         bases: list[float] = []
         modelos: list[float] = []
