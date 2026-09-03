@@ -405,6 +405,64 @@ O que resta, em ordem de custo:
 3. **Mais dado afrouxando o brilho.** O mais barato e o menos promissor: troca
    quantidade por medida pior, e a curva mostra que quantidade rende pouco agora.
 
+## Centroide — 02/09/2026: a primeira feature que soma
+
+| conjunto | limiar validado | regressão | Brenda |
+|---|---|---|---|
+| todos (1170) | 69,5% (±2,2) | 70,2% (±2,3) | **76,2% (±2,9)** |
+| S/R > 15 (856) | 71,9% (±3,7) | 73,1% (±3,5) | **76,4% (±3,2)** |
+
+Brenda saltou de 72,2% para **76,2%** no conjunto todo — quatro pontos de uma
+feature só —, e o ganho sobre a base foi de +2,6 para **+6,7**, vencendo em 5 de
+5 dobras.
+
+A direção é a que a física prevê: mediana de **1,485** para planetas contra
+**4,146** para falsos positivos. Onde a queda vem de uma vizinha, o centro de luz
+se move quase três vezes mais.
+
+### Por que esta funcionou e as outras não
+
+A matriz de correlação de posto entre as features responde:
+
+```
+                profundidade    S/R    pico   forma  centroide
+profundidade            1,00   0,85    0,97    0,67       0,07
+S/R                     0,85   1,00    0,88    0,75       0,10
+pico                    0,97   0,88    1,00    0,69       0,15
+forma                   0,67   0,75    0,69    1,00       0,00
+centroide               0,07   0,10    0,15    0,00       1,00
+```
+
+Profundidade e pico correlacionam **0,97** — são a mesma medida com nomes
+diferentes. Com S/R junto, formam um bloco que mede uma coisa só: quão forte é a
+queda.
+
+**E `forma` não é ortogonal, ao contrário do que ficou escrito aqui.** Ela
+correlaciona 0,67 a 0,75 com esse bloco. Era essa a razão de separar bem sozinha
+e não somar nada ao modelo — informação que o modelo já tinha, chegando por
+outro nome. A afirmação de que ela era "ortogonal por construção" estava errada,
+e o número que a derruba é este.
+
+O centroide correlaciona **0,00 a 0,15** com tudo. É a única feature do conjunto
+de que dá para dizer, com medida e não com argumento, que traz informação nova —
+porque não mede a força do sinal, mede de onde ele vem.
+
+### O que isso ensina para a próxima feature
+
+O critério não é "esta feature separa bem sozinha". `forma` separa 69,5% sozinha
+e não acrescenta nada. O critério é **descorrelação com o que já existe**, e ele
+é verificável antes de treinar: basta a matriz acima.
+
+### O orçamento estava errado por uma ordem de grandeza
+
+Ficou escrito que esta feature exigiria baixar *target pixel files* — "outra
+ordem de dado e de trabalho", dezenas de gigabytes. O centroide já estava nas
+colunas `MOM_CENTR1/2` do arquivo de curva do SPOC, nos 2,2 GB de FITS que já
+estavam em cache. Custo real de rede: zero.
+
+Vale como lição de estimativa: o custo foi orçado a partir de como a medida é
+feita em princípio, e não do que o dado disponível já continha.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que

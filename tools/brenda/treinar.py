@@ -55,6 +55,7 @@ FEATURES = [
     "secundario_pct",
     "odd_even",
     "forma",
+    "centroide",
     "duracao_h",
 ]
 
