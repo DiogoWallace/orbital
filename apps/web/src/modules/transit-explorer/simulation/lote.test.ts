@@ -55,6 +55,9 @@ function carregar(caminho: string): LightCurve {
   return {
     time: Float64Array.from(bruto.tempo),
     flux: Float64Array.from(bruto.fluxo),
+    // Ausentes nas curvas antigas; a métrica trata a falta como não medido.
+    centroidCol: bruto.centroideCol ? Float64Array.from(bruto.centroideCol) : undefined,
+    centroidRow: bruto.centroideLinha ? Float64Array.from(bruto.centroideLinha) : undefined,
   };
 }
 
@@ -89,6 +92,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
       "secundario_pct",
       "odd_even",
       "forma",
+      "centroide",
       "pontos",
     ];
 
@@ -139,6 +143,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
         (r.secondaryDepth * 100).toFixed(4),
         r.oddEven.toFixed(4),
         r.shapeRatio.toFixed(4),
+        r.centroid.toFixed(4),
         String(curva.time.length),
       ];
 
@@ -152,6 +157,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
         r.secondaryDepth * 100,
         r.oddEven,
         r.shapeRatio,
+        r.centroid,
         Number.isFinite(erro) ? erro : Number.NaN,
       ]);
     }
@@ -166,7 +172,7 @@ describe.skipIf(!PASTA)("análise em lote", () => {
       return limpos[Math.floor(limpos.length / 2)];
     };
 
-    const nomes = ["profundidade %", "S/R", "pico e-3", "secundário %", "odd-even", "forma", "erro período"];
+    const nomes = ["profundidade %", "S/R", "pico e-3", "secundário %", "odd-even", "forma", "centroide", "erro período"];
 
     console.log(`\n${saida.length - 1} alvos analisados -> resultados.csv\n`);
     console.log(`${"".padEnd(16)}${nomes.map((n) => n.padStart(15)).join("")}`);

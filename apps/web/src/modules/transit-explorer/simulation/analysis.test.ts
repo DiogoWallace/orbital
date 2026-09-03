@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   analyse,
+  centroidShift,
   foldCurve,
   oddEvenDifference,
   secondaryDepth,
@@ -15,7 +16,12 @@ import {
   segmentStarts,
   windowPointsFor,
 } from "./detrend";
-import { generateLightCurve, randomSource, transitShape } from "./synthetic";
+import {
+  gaussianSource,
+  generateLightCurve,
+  randomSource,
+  transitShape,
+} from "./synthetic";
 
 const CURTA = { baselineDays: 6, cadenceMinutes: 10 } as const;
 const GRADE = { minPeriod: 0.6, maxPeriod: 2.5, periodCount: 400, bins: 120 };
@@ -595,6 +601,76 @@ describe("forma do transito", () => {
     // Curva plana: sem profundidade, os degraus nao existem. Zero aqui
     // significa "nao medido", e nao "perfil em V".
     expect(transitShapeRatio(vazia, candidato)).toBe(0);
+  });
+});
+
+describe("deslocamento do centroide", () => {
+  const candidato = {
+    period: 1.3,
+    power: 1,
+    depth: 0.02,
+    durationDays: 2 / 24,
+    epoch: 0.4,
+  };
+
+  /** Curva com centroide sintetico, deslocando ou nao durante o transito. */
+  function comCentroide(deslocamento: number, ruido = 0.002) {
+    const base = generateLightCurve({
+      ...CURTA,
+      period: 1.3,
+      depth: 0.02,
+      durationHours: 2,
+      epoch: 0.4,
+      noise: 0.0005,
+      variabilityAmplitude: 0,
+    });
+
+    const random = randomSource(4242);
+    const gauss = gaussianSource(random);
+    const col = new Float64Array(base.time.length);
+    const lin = new Float64Array(base.time.length);
+    const meia = candidato.durationDays / 2;
+
+    for (let i = 0; i < base.time.length; i += 1) {
+      const ciclos = (base.time[i] - candidato.epoch) / candidato.period + 0.5;
+      const fase = (ciclos - Math.floor(ciclos) - 0.5) * candidato.period;
+      const dentro = Math.abs(fase) <= meia ? 1 : 0;
+
+      col[i] = gauss() * ruido + dentro * deslocamento;
+      lin[i] = gauss() * ruido + dentro * deslocamento * 0.5;
+    }
+
+    return { ...base, centroidCol: col, centroidRow: lin };
+  }
+
+  it("acusa deslocamento quando a queda vem de outra estrela", () => {
+    // Um centesimo de pixel, cinco vezes o ruido por cadencia.
+    expect(centroidShift(comCentroide(0.01), candidato)).toBeGreaterThan(10);
+  });
+
+  it("fica baixo quando o centro nao se move", () => {
+    expect(centroidShift(comCentroide(0), candidato)).toBeLessThan(5);
+  });
+
+  it("separa os dois casos com folga", () => {
+    const desloca = centroidShift(comCentroide(0.01), candidato);
+    const firme = centroidShift(comCentroide(0), candidato);
+
+    expect(desloca).toBeGreaterThan(firme * 3);
+  });
+
+  it("devolve zero quando a curva nao tem centroide", () => {
+    const semCentroide = generateLightCurve({ ...CURTA, period: 1.3, depth: 0.02 });
+
+    // Zero e "nao medido", nunca "nao deslocou".
+    expect(centroidShift(semCentroide, candidato)).toBe(0);
+  });
+
+  it("devolve zero quando o centroide tem tamanho errado", () => {
+    const curva = generateLightCurve({ ...CURTA, period: 1.3, depth: 0.02 });
+    const torta = { ...curva, centroidCol: new Float64Array(10), centroidRow: new Float64Array(10) };
+
+    expect(centroidShift(torta, candidato)).toBe(0);
   });
 });
 

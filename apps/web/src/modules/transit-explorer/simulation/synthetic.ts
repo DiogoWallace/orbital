@@ -22,6 +22,16 @@ export interface LightCurve {
   time: Float64Array;
   /** Fluxo relativo, normalizado em torno de 1. */
   flux: Float64Array;
+  /**
+   * Centro de luz da imagem, em pixels do detector, relativo à mediana.
+   *
+   * Opcionais porque curva sintética não tem imagem, e porque a medida só
+   * existe em produto que a traga — no TESS, as colunas `MOM_CENTR1/2` do
+   * arquivo do SPOC. Quem consome trata a ausência como "não medido", nunca
+   * como zero.
+   */
+  centroidCol?: Float64Array;
+  centroidRow?: Float64Array;
 }
 
 export interface SyntheticOptions {

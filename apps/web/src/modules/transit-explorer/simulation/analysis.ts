@@ -13,7 +13,7 @@
  */
 
 import { boxLeastSquares, type BlsOptions, type BlsResult, type TransitCandidate } from "./bls";
-import { detrendMasked, windowPointsFor } from "./detrend";
+import { detrendMasked, maskedTrend, windowPointsFor } from "./detrend";
 import type { LightCurve } from "./synthetic";
 
 export interface FoldedCurve {
@@ -287,6 +287,94 @@ export function transitShapeRatio(
   return cheia / meia;
 }
 
+/**
+ * Deslocamento do centro de luz durante o evento, em desvios do próprio ruído.
+ *
+ * Responde a pergunta que nenhuma medida de brilho responde: **a queda
+ * aconteceu na estrela-alvo ou numa vizinha?** Uma binária eclipsante de fundo,
+ * misturada na mesma abertura, produz uma queda periódica convincente — e puxa
+ * o centro de luz na direção dela enquanto dura. Um planeta transitando o
+ * próprio alvo não desloca nada.
+ *
+ * É o discriminador que a triagem real usa e que faltava aqui. Ao contrário de
+ * profundidade, pico e relação sinal/ruído, ele não mede a força do sinal: mede
+ * de onde ele vem. Ortogonal por natureza, e não por construção.
+ *
+ * O resultado é uma significância, não uma distância. Deslocamento de um
+ * centésimo de pixel pode ser enorme numa estrela brilhante e invisível numa
+ * fraca — o que importa é o tamanho dele comparado ao tremor da própria série.
+ *
+ * Devolve 0 quando não há centroide ou quando não dá para medir. Zero é "não
+ * medido", nunca "não deslocou".
+ */
+export function centroidShift(curve: LightCurve, candidate: TransitCandidate): number {
+  const { centroidCol, centroidRow } = curve;
+
+  if (!centroidCol || !centroidRow) return 0;
+  if (centroidCol.length !== curve.time.length) return 0;
+
+  const meia = candidate.durationDays / 2;
+  const janela = Math.max(1, Math.round(windowPointsFor(curve, 0.5)));
+
+  const dentro: number[] = [];
+  const significancias: number[] = [];
+
+  for (const eixo of [centroidCol, centroidRow]) {
+    // O centroide deriva com o apontamento da nave, numa escala de horas. Sem
+    // remover essa deriva, ela domina qualquer deslocamento de trânsito — que
+    // dura horas também.
+    const tendencia = maskedTrend(
+      eixo,
+      janela,
+      maskInTransit(curve, candidate),
+    );
+
+    let somaDentro = 0;
+    let nDentro = 0;
+    let somaFora = 0;
+    let quadradosFora = 0;
+    let nFora = 0;
+
+    for (let i = 0; i < curve.time.length; i += 1) {
+      const residuo = eixo[i] - tendencia[i];
+
+      if (!Number.isFinite(residuo)) continue;
+
+      const ciclos = (curve.time[i] - candidate.epoch) / candidate.period + 0.5;
+      const fase = (ciclos - Math.floor(ciclos) - 0.5) * candidate.period;
+
+      if (Math.abs(fase) <= meia) {
+        somaDentro += residuo;
+        nDentro += 1;
+      } else {
+        somaFora += residuo;
+        quadradosFora += residuo * residuo;
+        nFora += 1;
+      }
+    }
+
+    if (nDentro < 3 || nFora < 10) return 0;
+
+    const mediaDentro = somaDentro / nDentro;
+    const mediaFora = somaFora / nFora;
+    const variancia = Math.max(quadradosFora / nFora - mediaFora * mediaFora, 0);
+    const desvio = Math.sqrt(variancia);
+
+    if (desvio === 0) return 0;
+
+    dentro.push(mediaDentro - mediaFora);
+    // Erro padrão da média dentro do trânsito: é contra ele que o
+    // deslocamento precisa ser grande para significar alguma coisa.
+    significancias.push(Math.abs(mediaDentro - mediaFora) / (desvio / Math.sqrt(nDentro)));
+  }
+
+  if (significancias.length !== 2) return 0;
+
+  // Os dois eixos somados em quadratura: o deslocamento pode acontecer em
+  // qualquer direção do detector, e olhar um eixo só perderia metade dos casos.
+  return Math.sqrt(significancias[0] ** 2 + significancias[1] ** 2);
+}
+
 export interface AnalysisOptions {
   /** Janela do filtro robusto, em dias. */
   detrendWindowDays: number;
@@ -318,6 +406,8 @@ export interface AnalysisResult {
   oddEven: number;
   /** Forma do fundo: ~1 é chato (planeta), ~0,5 é bico (roçadura). */
   shapeRatio: number;
+  /** Deslocamento do centro de luz no evento, em desvios do próprio ruído. */
+  centroid: number;
 }
 
 /**
@@ -392,5 +482,8 @@ export function analyse(
     secondaryDepth: candidate ? secondaryDepth(achatada, candidate) : 0,
     oddEven: candidate ? oddEvenDifference(achatada, candidate) : 0,
     shapeRatio: candidate ? transitShapeRatio(achatada, candidate) : 0,
+    // Sobre a curva crua, não a achatada: o achatamento é do fluxo, e o
+    // centroide tem tendência própria, removida dentro da função.
+    centroid: candidate ? centroidShift(curve, candidate) : 0,
   };
 }
