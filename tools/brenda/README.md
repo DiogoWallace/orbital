@@ -291,6 +291,55 @@ real, mas atribuí-lo a "mais dado" seria chute — as três agem na mesma dire�
 
 `forma` segue como a feature de maior peso (+0,489), à frente de profundidade.
 
+## Curva de aprendizado — 02/09/2026: a pergunta finalmente respondida
+
+"Mais dado ainda ajuda?" atravessou quatro treinos sem resposta limpa, porque
+sempre mudava mais de uma coisa por vez. `aprendizado.py` isola a variável:
+mesmo corpus, mesmas features, mesma avaliação, só o tamanho muda.
+
+```bash
+python3 aprendizado.py --dados dados/resultados.csv
+```
+
+| n | limiar validado | Brenda | ganho |
+|---|---|---|---|
+| 100 | 68,8% ±3,8 | 68,0% ±4,7 | −0,8 |
+| 150 | 67,7% ±5,4 | 70,9% ±6,3 | +3,2 |
+| 200 | 67,4% ±2,7 | 68,8% ±0,4 | +1,4 |
+| 300 | 67,8% ±2,1 | 68,1% ±3,4 | +0,3 |
+| 400 | 68,3% ±1,2 | 70,5% ±1,8 | +2,2 |
+| 500 | 68,2% ±0,8 | 71,1% ±2,0 | +2,9 |
+| 600 | 68,5% ±0,6 | **72,5% ±0,6** | **+4,0** |
+
+Quatro leituras, e a terceira é a que importa para decidir o próximo passo.
+
+**A linha de base é plana.** ~68% em todos os tamanhos. Faz sentido: um limiar
+tem um parâmetro só, e um parâmetro não aprende com mais exemplos. Ela não é um
+concorrente que melhora — é um piso.
+
+**Brenda sobe, e ainda estava subindo no último passo.** +1,3 ponto de 500 para
+600, sem sinal de achatamento. Mais dado continua sendo investimento com
+retorno.
+
+**O ganho sobre a base cresce com o tamanho:** −0,8 em cem alvos, +4,0 em
+seiscentos. É a assinatura de um modelo que precisa de dado para se expressar —
+e é o que reconcilia os treinos anteriores. Em torno de 300 alvos o ganho era
++0,3, exatamente o empate que o terceiro treino mediu. **Aquelas conclusões não
+estavam erradas; eram observações corretas de um regime onde o modelo ainda não
+conseguia aparecer.**
+
+**O desvio desaba:** ±4,7 em cem alvos, ±0,6 em seiscentos. O resultado de hoje
+é muito mais confiável que qualquer um dos anteriores, e não só por ser maior.
+
+A curva tem ruído — n=150 marca +3,2 e n=300 marca +0,3, fora de ordem. Cinco
+sorteios por tamanho não eliminam a sorte. A tendência é clara; a monotonia não.
+
+### O teto
+
+A tabela TOI, com os filtros atuais (período < 9 d, tmag < 12), tem 665 planetas
+e 719 falsos positivos. Um corpus equilibrado de ~1.300 é o limite sem afrouxar
+brilho ou período — e afrouxar brilho troca quantidade por medida pior.
+
 ## Próximo passo
 
 Mais dado antes de mais modelo. Concretamente: vários setores por alvo, o que
