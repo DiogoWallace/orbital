@@ -39,6 +39,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
@@ -90,34 +91,77 @@ def carregar(caminho: Path) -> tuple[np.ndarray, np.ndarray, list[dict]]:
     return np.array(X), np.array(y), mantidas
 
 
+class LimiarUnico(BaseEstimator, ClassifierMixin):
+    """
+    Classificador de um limiar só, treinável — a linha de base honesta.
+
+    A versão anterior escolhia o melhor limiar **nos mesmos dados em que era
+    avaliada**, e comparava esse número com modelos validados de forma cruzada.
+    Isso é uma comparação torta a favor da linha de base: ela via a resposta e
+    eles não. O viés encolhe quando a amostra cresce, o que explica a linha de
+    base ter *caído* de 74,9% para 71,2% ao dobrar o corpus — não foi o dado
+    que piorou, foi o otimismo que diminuiu.
+
+    Embrulhado como estimador do scikit-learn, o limiar passa a ser escolhido só
+    na parte de treino de cada dobra e medido na parte que sobrou, igual aos
+    outros.
+    """
+
+    def fit(self, X, y):
+        melhor = (-1.0, 0, 0.0, 1)
+
+        for coluna in range(X.shape[1]):
+            valores = X[:, coluna]
+
+            for limiar in np.unique(valores):
+                for sinal in (1, -1):
+                    previsto = (valores > limiar) if sinal == 1 else (valores < limiar)
+
+                    sens = previsto[y == 1].mean() if (y == 1).any() else 0.0
+                    espec = (~previsto[y == 0]).mean() if (y == 0).any() else 0.0
+                    nota = (sens + espec) / 2
+
+                    if nota > melhor[0]:
+                        melhor = (nota, coluna, float(limiar), sinal)
+
+        self.nota_, self.coluna_, self.limiar_, self.sinal_ = melhor
+        self.classes_ = np.unique(y)
+
+        return self
+
+    def predict(self, X):
+        valores = X[:, self.coluna_]
+        previsto = (valores > self.limiar_) if self.sinal_ == 1 else (valores < self.limiar_)
+
+        return previsto.astype(int)
+
+
 def melhor_feature_isolada(X: np.ndarray, y: np.ndarray) -> tuple[str, float]:
-    """A linha de base: melhor limiar unico, em acuracia balanceada."""
-    melhor = ("", 0.0)
+    """Qual feature o limiar escolhe, e quanto ela acerta vendo tudo.
 
-    for i, nome in enumerate(FEATURES):
-        coluna = X[:, i]
+    Continua útil como diagnóstico — diz qual medida carrega o sinal —, mas
+    **não** serve de referência para comparar com modelo validado. Para isso
+    existe o `LimiarUnico` acima.
+    """
+    ajustado = LimiarUnico().fit(X, y)
 
-        for limiar in np.unique(coluna):
-            for maior in (True, False):
-                previsto = (coluna > limiar) if maior else (coluna < limiar)
-
-                sens = previsto[y == 1].mean() if (y == 1).any() else 0
-                espec = (~previsto[y == 0]).mean() if (y == 0).any() else 0
-                balanceada = (sens + espec) / 2
-
-                if balanceada > melhor[1]:
-                    melhor = (nome, balanceada)
-
-    return melhor
+    return FEATURES[ajustado.coluna_], ajustado.nota_
 
 
-def avaliar(nome: str, modelo, X: np.ndarray, y: np.ndarray, folds: int) -> float:
+def avaliar(nome: str, modelo, X: np.ndarray, y: np.ndarray, folds: int) -> np.ndarray:
+    """Devolve a nota de cada dobra, não só a média.
+
+    As dobras são as mesmas para todos os modelos — mesmo `random_state` —, e é
+    isso que permite a comparação pareada no fim. Comparar médias com desvio
+    esconde a informação mais útil: se um modelo ganha em *todas* as dobras, o
+    ganho é real mesmo quando os desvios se sobrepõem.
+    """
     cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=20260902)
     notas = cross_val_score(modelo, X, y, cv=cv, scoring="balanced_accuracy")
 
     print(f"    {nome:<28} {notas.mean() * 100:>6.1f}%  (±{notas.std() * 100:.1f})")
 
-    return float(notas.mean())
+    return notas
 
 
 def main() -> None:
@@ -147,10 +191,11 @@ def main() -> None:
 
         print(f"=== {rotulo}  ({len(yc)} alvos: {int((yc==1).sum())} planetas, {int((yc==0).sum())} falsos)")
 
-        nome_base, base = melhor_feature_isolada(Xc, yc)
-        print(f"    {'linha de base (' + nome_base + ')':<28} {base * 100:>6.1f}%")
+        nome_base, dentro = melhor_feature_isolada(Xc, yc)
+        print(f"    {'limiar vendo tudo (' + nome_base + ')':<28} {dentro * 100:>6.1f}%  <- otimista")
 
         avaliar("sempre a classe maior", DummyClassifier(strategy="most_frequent"), Xc, yc, args.folds)
+        base = avaliar("limiar único (validado)", LimiarUnico(), Xc, yc, args.folds)
 
         logistica = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000, class_weight="balanced"))
         avaliar("regressão logística", logistica, Xc, yc, args.folds)
@@ -160,7 +205,18 @@ def main() -> None:
         )
         modelo = avaliar("Brenda (árvores)", floresta, Xc, yc, args.folds)
 
-        print(f"    {'ganho sobre a base':<28} {(modelo - base) * 100:>+6.1f} pontos\n")
+        # Comparação pareada: as dobras são as mesmas, então a diferença dobra a
+        # dobra diz mais que a diferença das médias. Ganhar em todas as dobras é
+        # evidência mesmo quando os desvios se sobrepõem.
+        diferencas = (modelo - base) * 100
+        vitorias = int((diferencas > 0).sum())
+
+        print(f"    {'ganho médio sobre a base':<28} {diferencas.mean():>+6.1f} pontos")
+        print(
+            f"    {'por dobra':<28} "
+            + " ".join(f"{d:+.1f}" for d in diferencas)
+            + f"   ({vitorias}/{len(diferencas)} dobras)\n"
+        )
 
     # --- Peso de cada feature na regressão, no conjunto todo ---------------
     escala = StandardScaler().fit(X)
